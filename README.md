@@ -17,8 +17,8 @@ Installation:
 
 1. Download and install vs2020
 2. Install vcpkg
-   2a) Install glew using vcpkg
-   2b) Install glfw using vcpkg
+   * Install glew using vcpkg
+   * Install glfw using vcpkg
 
 Running:
 
