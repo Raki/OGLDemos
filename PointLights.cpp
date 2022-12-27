@@ -18,11 +18,16 @@ ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
 struct LightInfo
 {
+    glm::vec3 position;
     glm::vec3 ambient;
     glm::vec3 diffuse;
     glm::vec3 specular;
     glm::vec3 direction;
-
+    float linear;
+    float constant;
+    float quadratic;
+    float cutOff;
+    float outerCutOff;
 };
 
 GLFWwindow* window;
@@ -262,13 +267,20 @@ void setupCamera() {
 void setupScene()
 {
     light.direction = glm::vec3(0, -1, -1);
-    light.ambient = glm::vec3(0.3f);
+    light.position = glm::vec3(5, 6, 0);
+    light.ambient = glm::vec3(0.2f);
     light.diffuse = glm::vec3(0.5f);
     light.specular = glm::vec3(1.0f, 1.0f, 1.0f);
+    light.constant = 1.0f;
+    light.linear = 0.045f;
+    light.quadratic = 0.0075f;
+    light.cutOff = 40.0f;
+    light.outerCutOff = 60.0f;
+
 
     fsQuad = GLUtility::getfsQuad();
 
-    auto floor = GLUtility::get2DRect(5.0f, 5.0f);
+    auto floor = GLUtility::get2DRect(7.0f, 7.0f);
     auto trans = glm::translate(glm::mat4(1),glm::vec3(0,-1,0));
     floor->tMatrix = trans*glm::rotate(glm::mat4(1), glm::radians(-90.0f), GLUtility::X_AXIS);
     floor->color = glm::vec4(Color::grey, 1.0);
@@ -376,18 +388,18 @@ void renderFrame()
     auto lightColor = Color::white;
     glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f); // decrease the influence
     glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f); // low influence
-    dirLightProgram->setVec3f("light.position", lightPosition);
-    dirLightProgram->setVec3f("light.ambient", glm::vec3(0.2f));
-    dirLightProgram->setVec3f("light.diffuse", glm::vec3(0.5f));
-    dirLightProgram->setVec3f("light.specular", glm::vec3(1.0f, 1.0f, 1.0f));
+    dirLightProgram->setVec3f("light.position", light.position);
+    dirLightProgram->setVec3f("light.ambient", light.ambient);
+    dirLightProgram->setVec3f("light.diffuse", light.diffuse);
+    dirLightProgram->setVec3f("light.specular", light.specular);
 
-    dirLightProgram->setFloat("light.constant", 1.0f);
-    dirLightProgram->setFloat("light.linear", 0.045f);
-    dirLightProgram->setFloat("light.quadratic", 0.0075f);
+    dirLightProgram->setFloat("light.constant", light.constant);
+    dirLightProgram->setFloat("light.linear", light.linear);
+    dirLightProgram->setFloat("light.quadratic", light.quadratic);
 
     dirLightProgram->setVec3f("light.direction", glm::vec3(0, -1, 0));
-    dirLightProgram->setFloat("light.cutOff", glm::cos(glm::radians(40.0f)));
-    dirLightProgram->setFloat("light.outerCutOff", glm::cos(glm::radians(60.0f)));
+    dirLightProgram->setFloat("light.cutOff", glm::cos(glm::radians(light.cutOff)));
+    dirLightProgram->setFloat("light.outerCutOff", glm::cos(glm::radians(light.outerCutOff)));
 
 
     for (const auto &obj : scenObjects)
@@ -434,6 +446,18 @@ void renderImgui()
         ImGui::End();
     }
     
+
+    {
+        ImGui::Begin("Light params");
+        ImGui::SliderFloat3("Position", &light.position[0], -2, 2);
+        ImGui::SliderFloat3("Ambient", &light.ambient[0], 0, 1);
+        ImGui::SliderFloat3("Diffuse", &light.diffuse[0], 0, 1);
+        
+        ImGui::SliderFloat("CutOff", &light.cutOff, 0, 90);
+        ImGui::SliderFloat("outerCutOff", &light.outerCutOff, 0, 90);
+
+        ImGui::End();
+    }
 
     // Rendering
     ImGui::Render();
