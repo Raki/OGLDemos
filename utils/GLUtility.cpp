@@ -89,6 +89,7 @@ namespace GLUtility
 		
 	}
 
+	//ToDo : check if file is missing
 	GLuint makeTexture(string fileName)
 	{
 		int width, height, nrChannels;
@@ -943,6 +944,16 @@ namespace GLUtility
 		glBindVertexArray(vao);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
 		glDrawElements(drawCommand, drawCount, GL_UNSIGNED_INT, (void*)0);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+		glBindVertexArray(0);
+	}
+
+	void Mesh::draw(vector<DrawRange> ranges)
+	{
+		glBindVertexArray(vao);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+		for (auto range : ranges)
+			glDrawElements(drawCommand, range.drawCount, GL_UNSIGNED_INT, (void*)(range.offset * sizeof(GLuint)));
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 		glBindVertexArray(0);
 	}

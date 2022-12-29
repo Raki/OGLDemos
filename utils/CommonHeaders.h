@@ -23,6 +23,8 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+#include <tiny_obj_loader.h>
+
 using std::cout;
 using std::string;
 using std::vector;

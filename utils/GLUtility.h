@@ -12,6 +12,14 @@ namespace GLUtility
 	const glm::vec3 X_AXIS = glm::vec3(1, 0, 0);
 	const glm::vec3 Z_AXIS = glm::vec3(0, 0, 1);
 
+	struct DrawRange
+	{
+		unsigned int offset;
+		unsigned int drawCount;
+		GLuint texID = 0;
+		GLuint sTexID = 0;
+	};
+
 	struct VertexData
 	{
 		glm::vec3 pos;
@@ -102,6 +110,7 @@ namespace GLUtility
 		Mesh(vector<VertexData> vData, vector<unsigned int> iData,vector<Texture> textures);
 		void updateIbo();
 		void draw();
+		void draw(vector<DrawRange> ranges);
 		void drawInstanced(int iCount);
 		~Mesh();
 	};
