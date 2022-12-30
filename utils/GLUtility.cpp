@@ -553,6 +553,29 @@ namespace GLUtility
 		return cubeMesh;
 	}
 
+	std::shared_ptr<Mesh> getBoudingBox(glm::vec3 bbMin, glm::vec3 bbMax)
+	{
+		const auto dim = bbMax - bbMin;
+		//bottom
+		auto v0 = bbMin;
+		auto v1 = bbMin + glm::vec3(dim.x, 0, 0);
+		auto v2 = bbMin + glm::vec3(dim.x, 0, dim.z);
+		auto v3 = bbMin + glm::vec3(0, 0, dim.z);
+		//top
+		auto v4 = v0 + glm::vec3(0,dim.y,0);
+		auto v5 = v1 + glm::vec3(0,dim.y,0);
+		auto v6 = v2 + glm::vec3(0,dim.y,0);
+		auto v7 = v3 + glm::vec3(0,dim.y,0);
+
+		std::vector<glm::vec3> vData{v0,v1,v2,v3,v4,v5,v6,v7};
+		std::vector<unsigned int> iData{0,1,1,2,2,3,3,0,4,5,5,6,6,7,7,4,0,4,1,5,2,6,3,7};
+
+		auto bbMesh = std::make_shared<Mesh>(vData, iData);
+		bbMesh->name = "BoundingBox";
+		bbMesh->drawCommand = GL_LINES;
+		return bbMesh;
+	}
+
 	std::shared_ptr<Mesh> getRect(float width, float height, bool stroke)
 	{
 		vector<VertexData> interleavedArr;

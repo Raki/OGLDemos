@@ -100,5 +100,11 @@
     <None Include="shaders\vMatSpotLight.glsl">
       <Filter>shaders</Filter>
     </None>
+    <None Include="shaders\fBasic.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\vBasic.glsl">
+      <Filter>shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

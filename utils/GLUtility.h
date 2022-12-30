@@ -158,6 +158,7 @@ namespace GLUtility
 	std::shared_ptr<Mesh> getSimpleTri();
 	std::shared_ptr<Mesh> getCube(float width, float height, float depth);
 	std::shared_ptr<Mesh> getCubeVec3(float width, float height, float depth);
+	std::shared_ptr<Mesh> getBoudingBox(glm::vec3 bbMin,glm::vec3 bbMax);
 	/*
 	* No normal info
 	*/

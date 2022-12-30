@@ -48,9 +48,9 @@ glm::mat4 globalModelMat = glm::mat4(1);
 
 
 
-std::shared_ptr<GlslProgram> dirLightProgram;
+std::shared_ptr<GlslProgram> dirLightProgram,basicProgram;
 std::vector<std::shared_ptr<Mesh>> scenObjects;
-std::shared_ptr<Mesh> fsQuad;
+std::shared_ptr<Mesh> fsQuad,bBox,lBox;
 std::shared_ptr<FrameBuffer> layer1,layer2;
 std::shared_ptr<Texture2D> diffuseTex, specularTex;
 glm::vec3 lightPosition = glm::vec3(5, 6, 0);
@@ -80,6 +80,7 @@ std::shared_ptr<Framebuffer> blitContainer;
 vector<DrawRange> ranges;
 map<GLuint, vector<DrawRange>> rangesPerTex;
 vector<std::shared_ptr<ObjShape>> objParts;
+glm::mat4 objTMatrix;
 
 
 LightInfo light;
@@ -229,6 +230,7 @@ void initGL()
     glClearColor(0.1f, 0.2f, 0.3f, 1.0f);
 
     dirLightProgram = std::make_shared<GlslProgram>(Utility::readFileContents("shaders/vMatSpotLight.glsl"), Utility::readFileContents("shaders/fMatSpotLight.glsl"));
+    basicProgram = std::make_shared<GlslProgram>(Utility::readFileContents("shaders/vBasic.glsl"), Utility::readFileContents("shaders/fBasic.glsl"));
     
     
     setupScene();
@@ -309,8 +311,11 @@ void setupScene()
     blueRect->color = glm::vec4(Color::blue, 1.0);
     scenObjects.push_back(blueRect);
 
-    //loadObjModel("assets/cube/Cube.obj");
-    loadObjModel("assets/cobblerstone/untitled.obj");
+    lBox = GLUtility::getCubeVec3(0.2, 0.2, 0.2);
+    lBox->color = glm::vec4(1.0);
+    lBox->tMatrix = glm::translate(glm::mat4(1), light.position);
+
+    loadObjModel("assets/cube/Cube.obj");
 
 }
 
@@ -375,6 +380,8 @@ void updateFrame()
     scenObjects.at(2)->tMatrix = glm::translate(glm::mat4(1), glm::vec3(bluePos[0], bluePos[1], bluePos[2]));
     scenObjects.at(1)->tMatrix = glm::translate(glm::mat4(1), glm::vec3(orangePos[0], orangePos[1], orangePos[2]));
     camera->orbitY(gRotation);
+    lBox->tMatrix = glm::translate(glm::mat4(1), light.position);
+
 
 }
 
@@ -430,7 +437,7 @@ void renderFrame()
         obj->draw();
     }*/
 
-    auto mv = globalModelMat;
+    auto mv = objTMatrix*globalModelMat;
     auto nrmlMat = glm::transpose(glm::inverse(mv));
 
     dirLightProgram->setMat4f("model", mv);
@@ -460,6 +467,25 @@ void renderFrame()
     dirLightProgram->unbind();
 
     
+    basicProgram->bind();
+
+    basicProgram->setMat4f("model", mv);
+    basicProgram->setMat4f("view", camera->viewMat);
+    basicProgram->setMat4f("proj", projectionMat);
+    basicProgram->setVec3f("color", Color::red);
+
+    basicProgram->bindAllUniforms();
+
+    bBox->draw();
+
+    mv = lBox->tMatrix * globalModelMat;
+    basicProgram->setMat4f("model", mv);
+    basicProgram->setVec3f("color", glm::vec3(lBox->color));
+    basicProgram->bindAllUniforms();
+    lBox->draw();
+
+    basicProgram->unbind();
+
     
     //blitting
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
@@ -491,7 +517,7 @@ void renderImgui()
 
     {
         ImGui::Begin("Light params");
-        ImGui::SliderFloat3("Position", &light.position[0], -2, 2);
+        ImGui::SliderFloat3("Position", &light.position[0], -5, 5);
         ImGui::SliderFloat3("Ambient", &light.ambient[0], 0, 1);
         ImGui::SliderFloat3("Diffuse", &light.diffuse[0], 0, 1);
         
@@ -693,7 +719,10 @@ void loadObjModel(std::string filePath)
         objParts.push_back(part);
     }
 
-
+    auto mid = (bbMin + bbMax) / 2.0f;
+    //always follow Trans * Rotation * Scale
+    objTMatrix = glm::translate(glm::mat4(1), glm::vec3(-mid.x,0,-mid.z))*glm::scale(glm::mat4(1),glm::vec3(2));
+    bBox = GLUtility::getBoudingBox(bbMin, bbMax);
 }
 
 

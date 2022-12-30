@@ -48,7 +48,9 @@
     <ClInclude Include="utils\Utility.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="shaders\fBasic.glsl" />
     <None Include="shaders\fMatSpotLight.glsl" />
+    <None Include="shaders\vBasic.glsl" />
     <None Include="shaders\vMatSpotLight.glsl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
