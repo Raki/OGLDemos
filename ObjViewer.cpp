@@ -19,7 +19,15 @@ struct ObjShape
 {
     std::shared_ptr<Mesh> mesh;
     map<GLuint, vector<DrawRange>> rangesPerTex;
+};
 
+
+struct ObjContainer
+{
+    vector<std::shared_ptr<ObjShape>> objParts;
+    glm::mat4 tMatrix;
+    std::shared_ptr<Mesh> bBox;
+    glm::vec3 bbMin, bbMax;
 };
 
 struct LightInfo
@@ -79,9 +87,7 @@ std::shared_ptr<Framebuffer> blitContainer;
 
 vector<DrawRange> ranges;
 map<GLuint, vector<DrawRange>> rangesPerTex;
-vector<std::shared_ptr<ObjShape>> objParts;
-glm::mat4 objTMatrix;
-
+vector<std::shared_ptr<ObjContainer>> objModels;
 
 LightInfo light;
 glm::mat4 uvRotMat = glm::mat4(1);
@@ -112,7 +118,7 @@ void renderFrame();
 void renderImgui();
 
 
-void loadObjModel(std::string filePath);
+std::shared_ptr<ObjContainer> loadObjModel(std::string filePath,std::string defaultDiffuse="assets/textures/default.jpg");
 
 
 #pragma endregion
@@ -282,7 +288,7 @@ void setupCamera() {
 void setupScene()
 {
     light.direction = glm::vec3(0, -1, -1);
-    light.position = glm::vec3(5, 6, 0);
+    light.position = glm::vec3(0, 6, 0);
     light.ambient = glm::vec3(0.2f);
     light.diffuse = glm::vec3(0.5f);
     light.specular = glm::vec3(1.0f, 1.0f, 1.0f);
@@ -301,21 +307,18 @@ void setupScene()
     floor->color = glm::vec4(Color::grey, 1.0);
     scenObjects.push_back(floor);
 
-    auto orangeRect = get2DRect(2, 2);
-    //orangeRect->tMatrix = glm::rotate(glm::mat4(1), glm::radians(25.0f), GLUtility::Y_AXIS);
-    orangeRect->color = glm::vec4(Color::orange, 1.0);
-    scenObjects.push_back(orangeRect);
-
-    auto blueRect = get2DRect(2, 2);
-    blueRect->tMatrix = glm::translate(glm::mat4(1), glm::vec3(0.2, 0, -1.0));
-    blueRect->color = glm::vec4(Color::blue, 1.0);
-    scenObjects.push_back(blueRect);
 
     lBox = GLUtility::getCubeVec3(0.2, 0.2, 0.2);
     lBox->color = glm::vec4(1.0);
     lBox->tMatrix = glm::translate(glm::mat4(1), light.position);
+    
 
-    loadObjModel("assets/cube/Cube.obj");
+    auto obj1 = loadObjModel("assets/cube/Cube.obj");
+    auto obj2 = loadObjModel("assets/test/cube.obj");
+    obj2->tMatrix = glm::translate(obj2->tMatrix, glm::vec3(1.5f*(obj1->bbMax.x-obj1->bbMin.x), 0, 0));
+    obj2->bBox->tMatrix = obj2->tMatrix;
+    objModels.push_back(obj1);
+    objModels.push_back(obj2);
 
 }
 
@@ -377,8 +380,8 @@ void updateFrame()
     auto t = glfwGetTime()*20;
     auto theta = (int)t % 360;
    
-    scenObjects.at(2)->tMatrix = glm::translate(glm::mat4(1), glm::vec3(bluePos[0], bluePos[1], bluePos[2]));
-    scenObjects.at(1)->tMatrix = glm::translate(glm::mat4(1), glm::vec3(orangePos[0], orangePos[1], orangePos[2]));
+    //scenObjects.at(2)->tMatrix = glm::translate(glm::mat4(1), glm::vec3(bluePos[0], bluePos[1], bluePos[2]));
+    //scenObjects.at(1)->tMatrix = glm::translate(glm::mat4(1), glm::vec3(orangePos[0], orangePos[1], orangePos[2]));
     camera->orbitY(gRotation);
     lBox->tMatrix = glm::translate(glm::mat4(1), light.position);
 
@@ -424,7 +427,7 @@ void renderFrame()
     dirLightProgram->setFloat("light.outerCutOff", glm::cos(glm::radians(light.outerCutOff)));
 
 
-    /*for (const auto &obj : scenObjects)
+    for (const auto &obj : scenObjects)
     {
         auto mv = obj->tMatrix * globalModelMat;
         auto nrmlMat = glm::transpose(glm::inverse(mv));
@@ -435,32 +438,34 @@ void renderFrame()
         dirLightProgram->bindAllUniforms();
 
         obj->draw();
-    }*/
-
-    auto mv = objTMatrix*globalModelMat;
-    auto nrmlMat = glm::transpose(glm::inverse(mv));
-
-    dirLightProgram->setMat4f("model", mv);
-    dirLightProgram->setMat4f("nrmlMat", nrmlMat);
-
-    dirLightProgram->bindAllUniforms();
+    }
 
     
-    for (auto part : objParts)
+    for (auto& objContianer : objModels)
     {
-        for (auto info : part->rangesPerTex)
+        auto mv =objContianer->tMatrix * globalModelMat;
+        auto nrmlMat = glm::transpose(glm::inverse(mv));
+
+        dirLightProgram->setMat4f("model", mv);
+        dirLightProgram->setMat4f("nrmlMat", nrmlMat);
+
+        dirLightProgram->bindAllUniforms();
+        for (auto& part : objContianer->objParts)
         {
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, info.first);
-            if (info.second.size() > 0)
+            for (auto& info : part->rangesPerTex)
             {
-                if (info.second.at(0).sTexID > 0)
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, info.first);
+                if (info.second.size() > 0)
                 {
-                    glActiveTexture(GL_TEXTURE1);
-                    glBindTexture(GL_TEXTURE_2D, info.second.at(0).sTexID);
+                    if (info.second.at(0).sTexID > 0)
+                    {
+                        glActiveTexture(GL_TEXTURE1);
+                        glBindTexture(GL_TEXTURE_2D, info.second.at(0).sTexID);
+                    }
                 }
+                part->mesh->draw(info.second);
             }
-            part->mesh->draw(info.second);
         }
     }
 
@@ -468,15 +473,20 @@ void renderFrame()
 
     
     basicProgram->bind();
-
-    basicProgram->setMat4f("model", mv);
+    
     basicProgram->setMat4f("view", camera->viewMat);
     basicProgram->setMat4f("proj", projectionMat);
     basicProgram->setVec3f("color", Color::red);
 
-    basicProgram->bindAllUniforms();
-
-    bBox->draw();
+    glm::mat4 mv;
+    
+    for (auto &objContainer : objModels)
+    {
+        mv = objContainer->bBox->tMatrix * globalModelMat;
+        basicProgram->setMat4f("model", mv);
+        basicProgram->bindAllUniforms();
+        objContainer->bBox->draw();
+    }
 
     mv = lBox->tMatrix * globalModelMat;
     basicProgram->setMat4f("model", mv);
@@ -532,7 +542,7 @@ void renderImgui()
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
-void loadObjModel(std::string filePath)
+std::shared_ptr<ObjContainer> loadObjModel(std::string filePath,std::string defaultDiffuse)
 {
     auto filename = filePath;// "assets/cube/Cube.obj";
     //get base path
@@ -554,7 +564,9 @@ void loadObjModel(std::string filePath)
     std::string err;
     bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, filename.c_str(), basepath.c_str());
 
-    //objMesh = std::make_shared<Mesh>();
+
+    auto objContainer = std::make_shared<ObjContainer>();
+    vector<std::shared_ptr<ObjShape>> objParts;
     vector<VertexData> vData;
     vector<unsigned int> iData;
 
@@ -619,34 +631,45 @@ void loadObjModel(std::string filePath)
                 vData.push_back(vd);
                 iData.push_back((unsigned int)iData.size());
             }
-        
-            auto materialID = shape.mesh.material_ids.at(i / 3);
-            size_t fv = size_t(shapes[s].mesh.num_face_vertices[i/3]);
-            if (pMid == -1)
+
+            if (materials.size() > 0)
             {
-                groups.at(groups.size() - 1).bInd = (int)(iData.size() - fv);
-                groups.at(groups.size() - 1).mId = materialID;
-            }
-            else
-            {
-                if (pMid != materialID)
+                auto materialID = shape.mesh.material_ids.at(i / 3);
+                assert(materialID >= 0);
+
+                size_t fv = size_t(shapes[s].mesh.num_face_vertices[i / 3]);
+                if (pMid == -1)
                 {
-                    //groups.at(groups.size() - 1).eInd = iData.size();
-                    MGroup mg;
-                    mg.mId = materialID;
-                    mg.bInd = (int)(iData.size()-fv);
-                    groups.push_back(mg);
+                    groups.at(groups.size() - 1).bInd = (int)(iData.size() - fv);
+                    groups.at(groups.size() - 1).mId = materialID;
                 }
                 else
                 {
-                    groups.at(groups.size() - 1).eInd = (int)iData.size();
+                    if (pMid != materialID)
+                    {
+                        //groups.at(groups.size() - 1).eInd = iData.size();
+                        MGroup mg;
+                        mg.mId = materialID;
+                        mg.bInd = (int)(iData.size() - fv);
+                        groups.push_back(mg);
+                    }
+                    else
+                    {
+                        groups.at(groups.size() - 1).eInd = (int)iData.size();
+                    }
+                    if ((i / 3) == shape.mesh.num_face_vertices.size() - 1)
+                    {
+                        groups.at(groups.size() - 1).eInd = (int)iData.size();
+                    }
                 }
-                if ((i/3) == shape.mesh.num_face_vertices.size() - 1)
-                {
-                    groups.at(groups.size() - 1).eInd = (int)iData.size();
-                }
+                pMid = materialID;
             }
-            pMid = materialID;
+            else
+            {
+                groups.at(groups.size() - 1).bInd = (int)(0);
+                groups.at(groups.size() - 1).mId = 0;
+                groups.at(groups.size() - 1).eInd = (int)iData.size();
+            }
         }
         
 
@@ -676,42 +699,66 @@ void loadObjModel(std::string filePath)
 
         }
 
-        for (auto i : rangerPerTexTemp)
+        if (materials.size()>0)
         {
-            auto diffuseTex = materials.at(i.first).diffuse_texname;
-            GLuint dTexID;
-            if (diffuseTex.size() > 0)
+            for (auto i : rangerPerTexTemp)
             {
-                
-                if (texList.find(diffuseTex) == texList.end())
+                auto diffuseTex = materials.at(i.first).diffuse_texname;
+                GLuint dTexID;
+                if (diffuseTex.size() > 0)
                 {
-                    dTexID = GLUtility::makeTexture(basepath + std::string("/") + diffuseTex);
-                    texList[diffuseTex] = dTexID;
-                }
-                else
-                    dTexID = texList[diffuseTex];
-                rangerPerTexLocal[dTexID] = i.second;
-            }
 
-            auto specTex = materials.at(i.first).diffuse_texname;
-            //ToDo : remove duplicate code
-            if (specTex.size() > 0)
-            {
-                GLuint tex;
-                if (texList.find(diffuseTex) == texList.end())
-                {
-                    tex = GLUtility::makeTexture(basepath + std::string("/") + specTex);
-                    texList[specTex] = tex;
+                    if (texList.find(diffuseTex) == texList.end())
+                    {
+                        if (basepath.length() > 0)
+                            dTexID = GLUtility::makeTexture(basepath + std::string("/") + diffuseTex);
+                        else
+                            dTexID = GLUtility::makeTexture(diffuseTex);
+                        texList[diffuseTex] = dTexID;
+                    }
+                    else
+                        dTexID = texList[diffuseTex];
+                    rangerPerTexLocal[dTexID] = i.second;
                 }
-                else
-                    tex = texList[specTex];
-                for (size_t r=0;r<rangerPerTexLocal[dTexID].size();r++)
+
+                auto specTex = materials.at(i.first).diffuse_texname;
+                //ToDo : remove duplicate code
+                if (specTex.size() > 0)
                 {
-                    rangerPerTexLocal[dTexID].at(r).sTexID = tex;
+                    GLuint tex;
+                    if (texList.find(diffuseTex) == texList.end())
+                    {
+                        tex = GLUtility::makeTexture(basepath + std::string("/") + specTex);
+                        texList[specTex] = tex;
+                    }
+                    else
+                        tex = texList[specTex];
+                    for (size_t r = 0; r < rangerPerTexLocal[dTexID].size(); r++)
+                    {
+                        rangerPerTexLocal[dTexID].at(r).sTexID = tex;
+                    }
                 }
             }
         }
+        else
+        {
+            GLuint dTexID;
+            for (auto i : rangerPerTexTemp)
+            {
+                if (texList.find(defaultDiffuse) == texList.end())
+                {
+                    if (basepath.length() > 0)
+                        dTexID = GLUtility::makeTexture(defaultDiffuse);
+                    else
+                        dTexID = GLUtility::makeTexture(defaultDiffuse);
+                    texList[defaultDiffuse] = dTexID;
+                }
+                else
+                    dTexID = texList[defaultDiffuse];
+                rangerPerTexLocal[dTexID] = i.second;
+            }
 
+        }
         auto mesh = std::make_shared<Mesh>(vData, iData);
         part->mesh = mesh;
         part->rangesPerTex = rangerPerTexLocal;
@@ -720,9 +767,16 @@ void loadObjModel(std::string filePath)
     }
 
     auto mid = (bbMin + bbMax) / 2.0f;
+    objContainer->objParts = objParts;
     //always follow Trans * Rotation * Scale
-    objTMatrix = glm::translate(glm::mat4(1), glm::vec3(-mid.x,0,-mid.z))*glm::scale(glm::mat4(1),glm::vec3(2));
-    bBox = GLUtility::getBoudingBox(bbMin, bbMax);
+    objContainer->tMatrix = glm::translate(glm::mat4(1), glm::vec3(-mid.x,0,-mid.z))*glm::scale(glm::mat4(1),glm::vec3(2));
+    objContainer->bBox = GLUtility::getBoudingBox(bbMin, bbMax);
+    objContainer->bBox->tMatrix = objContainer->tMatrix;
+    objContainer->bbMin = bbMin;
+    objContainer->bbMax = bbMax;
+    
+    return objContainer;
+    //objModels.push_back(objContainer);
 }
 
 
