@@ -46,6 +46,7 @@ struct LightInfo
 
 GLFWwindow* window;
 auto closeWindow = false;
+auto capturePos = false;
 
 std::shared_ptr<Camera> camera;
 float fov=45;
@@ -58,7 +59,7 @@ glm::mat4 globalModelMat = glm::mat4(1);
 
 std::shared_ptr<GlslProgram> dirLightProgram,basicProgram;
 std::vector<std::shared_ptr<Mesh>> scenObjects;
-std::shared_ptr<Mesh> fsQuad,bBox,lBox;
+std::shared_ptr<Mesh> fsQuad,bBox,lBox,polyline;
 std::shared_ptr<FrameBuffer> layer1,layer2;
 std::shared_ptr<Texture2D> diffuseTex, specularTex;
 glm::vec3 lightPosition = glm::vec3(5, 6, 0);
@@ -185,6 +186,15 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
     }
 }
 
+static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+{
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+    {
+        capturePos = true;
+        
+    }
+}
+
 void createWindow()
 {
     if (GLFW_TRUE != glfwInit())
@@ -200,6 +210,7 @@ void createWindow()
     window = glfwCreateWindow(WIN_WIDTH, WIN_HEIGHT, "Step1", NULL, NULL);
 
     glfwSetKeyCallback(window, key_callback);
+    glfwSetMouseButtonCallback(window, mouse_button_callback);
 
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1);
@@ -312,6 +323,12 @@ void setupScene()
     lBox->color = glm::vec4(1.0);
     lBox->tMatrix = glm::translate(glm::mat4(1), light.position);
     
+    std::vector<glm::vec3> points;
+    points.push_back(glm::vec3(-3, -3, 0));
+    points.push_back(glm::vec3(3, 3, 0));
+    polyline = GLUtility::getPolygon(points);
+    polyline->color = glm::vec4(Color::green,1);
+
 
     auto obj2 = loadObjModel("assets/test/cube.obj");
     obj2->bBox->tMatrix = obj2->tMatrix;
@@ -492,14 +509,33 @@ void renderFrame()
     basicProgram->bindAllUniforms();
     lBox->draw();
 
+    mv = polyline->tMatrix * globalModelMat;
+    basicProgram->setMat4f("model", mv);
+    basicProgram->setVec3f("color", glm::vec3(polyline->color));
+    basicProgram->bindAllUniforms();
+    polyline->draw();
+
     basicProgram->unbind();
 
     
     //blitting
+    auto err = glGetError();
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
     glBindFramebuffer(GL_READ_FRAMEBUFFER, layer1->fbo);
     glDrawBuffer(GL_BACK);
     glBlitFramebuffer(0, 0, WIN_WIDTH, WIN_HEIGHT, 0, 0, WIN_WIDTH, WIN_HEIGHT, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+    glBlitFramebuffer(0, 0, WIN_WIDTH, WIN_HEIGHT, 0, 0, WIN_WIDTH, WIN_HEIGHT, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+    if (capturePos)
+    {
+        double sx, sy;
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glfwGetCursorPos(window, &sx, &sy);
+        float d;
+        glReadPixels(sx, WIN_HEIGHT - sy, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &d);
+        auto pos = glm::unProject(glm::vec3(sx, WIN_HEIGHT - sy, d), camera->viewMat, projectionMat, glm::vec4(0, 0, WIN_WIDTH, WIN_HEIGHT));
+        polyline->tMatrix = glm::translate(glm::mat4(1), pos);
+        capturePos = false;
+    }
 }
 
 void renderImgui()

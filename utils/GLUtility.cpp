@@ -650,7 +650,22 @@ namespace GLUtility
 
 	std::shared_ptr<Mesh> getPolygon(vector<glm::vec3> points)
 	{
-		return std::shared_ptr<Mesh>();
+		vector<glm::vec3> interleavedArr;
+		vector<unsigned int> iArr;
+
+		auto totalVerts = points.size();
+		for (auto i = 0; i < totalVerts; i++)
+		{
+			auto v = points.at(i);
+			interleavedArr.push_back(v);
+			iArr.push_back((unsigned int)iArr.size());
+		}
+
+		auto polyline = std::make_shared<Mesh>(interleavedArr, iArr);
+		polyline->name = "polyline";
+		polyline->drawCommand = GL_LINE_STRIP;
+
+		return polyline;
 	}
 
 	std::shared_ptr<MeshGLES> getfsQuadES()
