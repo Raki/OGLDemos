@@ -59,7 +59,7 @@ glm::mat4 globalModelMat = glm::mat4(1);
 
 std::shared_ptr<GlslProgram> dirLightProgram,basicProgram;
 std::vector<std::shared_ptr<Mesh>> scenObjects;
-std::shared_ptr<Mesh> fsQuad,bBox,lBox,polyline;
+std::shared_ptr<Mesh> fsQuad,bBox,lBox,polyline,tri;
 std::shared_ptr<FrameBuffer> layer1,layer2;
 std::shared_ptr<Texture2D> diffuseTex, specularTex;
 glm::vec3 lightPosition = glm::vec3(5, 6, 0);
@@ -97,7 +97,7 @@ bool rotateFlg = false;
 bool viewBlendFrame = false;
 bool usePbo = true;
 
-float gRotation = 83;
+float gRotation = 90;
 
 float bluePos[3] = { 0.2f, 0, -1.0f };
 float orangePos[3] = { 0, 0, 0 };
@@ -178,11 +178,11 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
     }
     else if (key == GLFW_KEY_Q /*&& action == GLFW_PRESS*/)
     {
-        gRotation -= 0.05f;
+        gRotation -= 5.f;
     }
     else if (key == GLFW_KEY_E /*&& action == GLFW_PRESS*/)
     {
-        gRotation += 0.05f;
+        gRotation += 5.f;
     }
 }
 
@@ -190,8 +190,48 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
 {
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
     {
-        capturePos = true;
         
+        double wx, wy; //window coords
+        glfwGetCursorPos(window, &wx, &wy);
+
+        float x = (2.0f * wx) / WIN_WIDTH - 1.0f;
+        float y = 1.0f - (2.0f * wy) / WIN_HEIGHT;
+        float z = 1.0f;
+        glm::vec3 ray_nds = glm::vec3(x, y, z);
+        glm::vec4 ray_clip = glm::vec4(ray_nds.x, ray_nds.y, -1.0, 1.0);
+        glm::vec4 ray_eye = glm::inverse(projectionMat) * ray_clip;
+        ray_eye = glm::vec4(ray_eye.x, ray_eye.y, -1.0, 0.0);
+
+        glm::vec3 ray_wor = glm::vec3(glm::inverse(camera->viewMat) * ray_eye);
+        // don't forget to normalise the vector at some point
+        //ray_wor = glm::normalize(ray_wor);
+       
+        glm::vec3 rayOrigin = camera->eye;
+        glm::vec3 rayEnd = rayOrigin + (20.0f * ray_wor);
+
+        std::vector<glm::vec3> tri;
+        std::vector<glm::vec3> ray;
+        /*tri.push_back(glm::vec3(-1,-1,1));
+        tri.push_back(glm::vec3(1, -1, 1));
+        tri.push_back(glm::vec3(1, 1, 1));*/
+        tri.push_back(glm::vec3(0));
+        tri.push_back(glm::vec3(0.5,0,0));
+        tri.push_back(glm::vec3(0.5, 0.5, 0));
+        ray.push_back(rayOrigin);
+        ray.push_back(rayEnd);
+
+        glm::vec3 intr;
+        if (GLUtility::intersects3D_RayTrinagle(ray, tri, intr) == 1)
+        {
+            ::tri->color = glm::vec4(Color::purple, 1.0);
+            std::cout << intr.x << " " << intr.y << " " << intr.z << cendl;
+        }
+        else
+        {
+            ::tri->color = glm::vec4(Color::red, 1.0);
+        }
+
+        capturePos = true;
     }
 }
 
@@ -206,7 +246,7 @@ void createWindow()
 
     glfwSetErrorCallback(error_callback);
     
-
+    glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
     window = glfwCreateWindow(WIN_WIDTH, WIN_HEIGHT, "Step1", NULL, NULL);
 
     glfwSetKeyCallback(window, key_callback);
@@ -288,7 +328,7 @@ void initImgui()
 
 void setupCamera() {
 
-    auto eye = glm::vec3(-5, 5, 10);
+    auto eye = glm::vec3(0, 0, 10);
     auto center = glm::vec3(0, 0, 0);
     auto up = glm::vec3(0, 1, 0);
     camera = std::make_shared<Camera>(eye,center,up);
@@ -299,7 +339,7 @@ void setupCamera() {
 void setupScene()
 {
     light.direction = glm::vec3(0, -1, -1);
-    light.position = glm::vec3(0, 6, 0);
+    light.position = glm::vec3(0, 3, 0);
     light.ambient = glm::vec3(0.2f);
     light.diffuse = glm::vec3(0.5f);
     light.specular = glm::vec3(1.0f, 1.0f, 1.0f);
@@ -322,6 +362,9 @@ void setupScene()
     lBox = GLUtility::getCubeVec3(0.2, 0.2, 0.2);
     lBox->color = glm::vec4(1.0);
     lBox->tMatrix = glm::translate(glm::mat4(1), light.position);
+
+    tri = GLUtility::getSimpleTri();
+    tri->color = glm::vec4(1, 0, 0, 1);
     
     std::vector<glm::vec3> points;
     points.push_back(glm::vec3(-3, -3, 0));
@@ -330,9 +373,9 @@ void setupScene()
     polyline->color = glm::vec4(Color::green,1);
 
 
-    auto obj2 = loadObjModel("assets/test/cube.obj");
+    /*auto obj2 = loadObjModel("assets/test/cube.obj");
     obj2->bBox->tMatrix = obj2->tMatrix;
-    objModels.push_back(obj2);
+    objModels.push_back(obj2);*/
 
 }
 
@@ -397,7 +440,7 @@ void updateFrame()
     //scenObjects.at(2)->tMatrix = glm::translate(glm::mat4(1), glm::vec3(bluePos[0], bluePos[1], bluePos[2]));
     //scenObjects.at(1)->tMatrix = glm::translate(glm::mat4(1), glm::vec3(orangePos[0], orangePos[1], orangePos[2]));
     light.position.x = sin(glm::radians((float)t))*5;
-    camera->orbitY(gRotation);
+    camera->orbitY(glm::radians(gRotation));
     lBox->tMatrix = glm::translate(glm::mat4(1), light.position);
 
 
@@ -515,6 +558,12 @@ void renderFrame()
     basicProgram->bindAllUniforms();
     polyline->draw();
 
+    mv = tri->tMatrix * globalModelMat;
+    basicProgram->setMat4f("model", mv);
+    basicProgram->setVec3f("color", glm::vec3(tri->color));
+    basicProgram->bindAllUniforms();
+    tri->draw();
+
     basicProgram->unbind();
 
     
@@ -545,13 +594,11 @@ void renderImgui()
     ImGui::NewFrame();
 
     {
-        ImGui::Begin("Basic Example");                     
+        ImGui::Begin("Ray Triangle Picking");                     
 
         ImGui::Text("Use UP & DOWN arrows for zoom-In&Out");
-        ImGui::SliderAngle("GMat Y Rotation", &gRotation, -360, 360);
-        ImGui::SliderFloat3("Blue",bluePos , -2, 2);
-        ImGui::SliderFloat3("Orange", orangePos, -2, 2);
-        
+        ImGui::SliderFloat("Rotation", &gRotation, 0, 360);
+        ImGui::Text("Use Lef mouse click to pick triangle");
 
         ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
