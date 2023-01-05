@@ -101,6 +101,7 @@ namespace GLUtility
 		string name;
 		glm::vec3 position;
 		glm::vec4 color;
+		glm::vec4 pickColor;
 		GLenum drawCommand=GL_TRIANGLES;
 
 		GLuint vbo, ibo, vao;

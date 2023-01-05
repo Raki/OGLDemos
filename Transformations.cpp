@@ -58,8 +58,8 @@ glm::mat4 globalModelMat = glm::mat4(1);
 
 
 std::shared_ptr<GlslProgram> dirLightProgram,basicProgram;
-std::vector<std::shared_ptr<Mesh>> scenObjects;
-std::shared_ptr<Mesh> fsQuad,bBox,lBox,polyline,tri,blueBox;
+std::vector<std::shared_ptr<Mesh>> scenObjects,defaultMatObjs;
+std::shared_ptr<Mesh> fsQuad,lBox,pickBox;
 std::shared_ptr<FrameBuffer> layer1,layer2;
 std::shared_ptr<Texture2D> diffuseTex, specularTex;
 glm::vec3 lightPosition = glm::vec3(5, 6, 0);
@@ -204,7 +204,7 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
 
         glm::vec3 ray_wor = glm::vec3(glm::inverse(camera->viewMat) * ray_eye);
         // don't forget to normalise the vector at some point
-        //ray_wor = glm::normalize(ray_wor);
+        ray_wor = glm::normalize(ray_wor);
        
         glm::vec3 rayOrigin = camera->eye;
         glm::vec3 rayEnd = rayOrigin + (20.0f * ray_wor);
@@ -213,78 +213,56 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
 
         std::vector<glm::vec3> tri;
         std::vector<glm::vec3> ray;
-        /*tri.push_back(glm::vec3(-1,-1,1));
-        tri.push_back(glm::vec3(1, -1, 1));
-        tri.push_back(glm::vec3(1, 1, 1));*/
         
         ray.push_back(rayOrigin);
         ray.push_back(rayEnd);
 
-        for (auto i=0;i<::tri->iData.size();i+=3)
-        {
-            auto v1 = ::tri->vData.at(::tri->iData.at(i)).pos;
-            auto v2 = ::tri->vData.at(::tri->iData.at(i+1)).pos;
-            auto v3 = ::tri->vData.at(::tri->iData.at(i+2)).pos;
-            v1 = glm::vec3(::tri->tMatrix * glm::vec4(v1, 1));
-            v2 = glm::vec3(::tri->tMatrix * glm::vec4(v2, 1));
-            v3 = glm::vec3(::tri->tMatrix * glm::vec4(v3, 1));
 
-            tri.push_back(v1);
-            tri.push_back(v2);
-            tri.push_back(v3);
-            glm::vec3 intr;
-            if (GLUtility::intersects3D_RayTrinagle(ray, tri, intr) == 1)
-            {
-                ::tri->color = glm::vec4(Color::purple, 1.0);
-                std::cout << intr.x << " " << intr.y << " " << intr.z << cendl;
-            }
-            else
-            {
-                ::tri->color = glm::vec4(Color::red, 1.0);
-            }
-            tri.clear();
-        }
-
-        const auto& boxVData = blueBox->vDataVec3;
-        const auto& boxIData = blueBox->iData;
-        float dist = 10000;
-        int hitCount = 0;
-        for (auto i = 0; i < boxIData.size(); i += 3)
+        for (auto &obj: defaultMatObjs)
         {
-            auto v1 = boxVData.at(boxIData.at(i));
-            auto v2 = boxVData.at(boxIData.at(i + 1));
-            auto v3 = boxVData.at(boxIData.at(i + 2));
-            v1 = glm::vec3(blueBox->tMatrix * glm::vec4(v1, 1));
-            v2 = glm::vec3(blueBox->tMatrix * glm::vec4(v2, 1));
-            v3 = glm::vec3(blueBox->tMatrix * glm::vec4(v3, 1));
+            if (obj->drawCommand != GL_TRIANGLES)
+                continue;
+            const auto& boxVData = obj->vDataVec3;
+            const auto& boxIData = obj->iData;
+            float dist = 10000;
+            int hitCount = 0;
+            for (auto i = 0; i < boxIData.size(); i += 3)
+            {
+                auto v1 = (boxVData.size()>0)?boxVData.at(boxIData.at(i)):obj->vData.at(boxIData.at(i)).pos;
+                auto v2 = (boxVData.size() > 0) ? boxVData.at(boxIData.at(i+1)) : obj->vData.at(boxIData.at(i+1)).pos;
+                auto v3 = (boxVData.size() > 0) ? boxVData.at(boxIData.at(i+2)) : obj->vData.at(boxIData.at(i+2)).pos;
+                v1 = glm::vec3(obj->tMatrix * glm::vec4(v1, 1));
+                v2 = glm::vec3(obj->tMatrix * glm::vec4(v2, 1));
+                v3 = glm::vec3(obj->tMatrix * glm::vec4(v3, 1));
 
-            tri.push_back(v1);
-            tri.push_back(v2);
-            tri.push_back(v3);
-            glm::vec3 intr;
-            if (GLUtility::intersects3D_RayTrinagle(ray, tri, intr) == 1)
-            {
-                blueBox->color = glm::vec4(Color::purple, 1.0);
-                std::cout << intr.x << " " << intr.y << " " << intr.z << cendl;
-                hitCount += 1;
+                tri.push_back(v1);
+                tri.push_back(v2);
+                tri.push_back(v3);
+                glm::vec3 intr;
+                if (GLUtility::intersects3D_RayTrinagle(ray, tri, intr) == 1)
+                {
+                    obj->color = glm::vec4(Color::purple, 1.0);
+                    std::cout << intr.x << " " << intr.y << " " << intr.z << cendl;
+                    hitCount += 1;
+                }
+                else
+                {
+                    // blueBox->color = glm::vec4(Color::red, 1.0);
+                }
+                tri.clear();
             }
-            else
+            if (hitCount == 0)
             {
-               // blueBox->color = glm::vec4(Color::red, 1.0);
+                obj->color = obj->pickColor;
             }
-            tri.clear();
-        }
-        if (hitCount == 0)
-        {
-            blueBox->color = glm::vec4(Color::green, 1.0);
         }
 
         for (auto& objModel : objModels)
         {
             for (auto& objPart : objModel->objParts)
             {
-                const auto &iData = objPart->mesh->iData;
-                const auto& vData = objPart->mesh->vData;
+                const auto iData = objPart->mesh->iData;
+                const auto vData = objPart->mesh->vData;
                 for (auto i = 0; i < iData.size(); i += 3)
                 {
                     auto v1 =  vData.at( iData.at(i)).pos;
@@ -443,24 +421,49 @@ void setupScene()
     lBox = GLUtility::getCubeVec3(0.2, 0.2, 0.2);
     lBox->color = glm::vec4(1.0);
     lBox->tMatrix = glm::translate(glm::mat4(1), light.position);
+    lBox->pickColor = glm::vec4(1.0);
 
-    blueBox = GLUtility::getCubeVec3(2, 2, 2);
+    auto blueBox = GLUtility::getCubeVec3(2, 2, 2);
     blueBox->color = glm::vec4(Color::blue,1.0);
     blueBox->tMatrix = glm::translate(glm::mat4(1), glm::vec3(-4,0,0));
+    blueBox->pickColor = glm::vec4(Color::blue, 1.0);
 
+    vector<VertexData> vData = {
+            {glm::vec3(-0.5,-0.5,0.5),glm::vec3(0,0,1),glm::vec2(0,0)},
+            {glm::vec3(0.5,-0.5,0.5),glm::vec3(0,0,1),glm::vec2(1,0)},
+            {glm::vec3(-0.5,0.5,0.5),glm::vec3(0,0,1),glm::vec2(1,1)}
+    };
+    vector<unsigned int> iData = { 0,1,2 };
 
-    tri = GLUtility::getSimpleTri();
+    auto triMesh = std::make_shared<Mesh>(vData, iData);
+    triMesh->name = "Simple Triangle";
+    triMesh->color = glm::vec4(Color::brown, 1.0);
+    triMesh->pickColor = glm::vec4(Color::brown, 1.0);
+    triMesh->tMatrix = glm::translate(glm::mat4(1), glm::vec3(-4, 4, 0));
+
+    auto tri = GLUtility::getSimpleTri();
     tri->color = glm::vec4(1, 0, 0, 1);
     tri->tMatrix = glm::translate(glm::mat4(1), glm::vec3(4, 0, 0));
+    tri->pickColor = glm::vec4(1, 0, 0, 1);
     
-    polyline = GLUtility::getCubeVec3(0.2, 0.2, 0.2);
-    polyline->color = glm::vec4(Color::green,1);
+    pickBox= GLUtility::getCubeVec3(0.2, 0.2, 0.2);
+    pickBox->color = glm::vec4(Color::green,1);
+    pickBox->pickColor = glm::vec4(Color::green, 1);
 
+    defaultMatObjs.push_back(lBox);
+    defaultMatObjs.push_back(blueBox);
+    defaultMatObjs.push_back(tri);
+    defaultMatObjs.push_back(pickBox);
+    defaultMatObjs.push_back(triMesh);
+    
 
-    /*auto obj2 = loadObjModel("assets/test/cube.obj");
+    auto obj2 = loadObjModel("assets/test/cube - Copy.obj");
     obj2->bBox->tMatrix = obj2->tMatrix;
-    objModels.push_back(obj2);*/
+    objModels.push_back(obj2);
 
+    auto normlMesh = GLUtility::getNrmlMesh(obj2->objParts.at(0)->mesh);
+    normlMesh->color = glm::vec4(Color::lightOrange, 1);
+    defaultMatObjs.push_back(normlMesh);
 }
 
 
@@ -630,29 +633,14 @@ void renderFrame()
         objContainer->bBox->draw();
     }
 
-    mv = lBox->tMatrix * globalModelMat;
-    basicProgram->setMat4f("model", mv);
-    basicProgram->setVec3f("color", glm::vec3(lBox->color));
-    basicProgram->bindAllUniforms();
-    lBox->draw();
-
-    mv = blueBox->tMatrix * globalModelMat;
-    basicProgram->setMat4f("model", mv);
-    basicProgram->setVec3f("color", glm::vec3(blueBox->color));
-    basicProgram->bindAllUniforms();
-    blueBox->draw();
-
-    mv = polyline->tMatrix * globalModelMat;
-    basicProgram->setMat4f("model", mv);
-    basicProgram->setVec3f("color", glm::vec3(polyline->color));
-    basicProgram->bindAllUniforms();
-    polyline->draw();
-
-    mv = tri->tMatrix * globalModelMat;
-    basicProgram->setMat4f("model", mv);
-    basicProgram->setVec3f("color", glm::vec3(tri->color));
-    basicProgram->bindAllUniforms();
-    tri->draw();
+    for (auto& obj : defaultMatObjs)
+    {
+        mv = obj->tMatrix * globalModelMat;
+        basicProgram->setMat4f("model", mv);
+        basicProgram->setVec3f("color", glm::vec3(obj->color));
+        basicProgram->bindAllUniforms();
+        obj->draw();
+    }
 
     basicProgram->unbind();
 
@@ -672,7 +660,7 @@ void renderFrame()
         float d;
         glReadPixels(sx, WIN_HEIGHT - sy, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &d);
         auto pos = glm::unProject(glm::vec3(sx, WIN_HEIGHT - sy, d), camera->viewMat, projectionMat, glm::vec4(0, 0, WIN_WIDTH, WIN_HEIGHT));
-        polyline->tMatrix = glm::translate(glm::mat4(1), pos);
+        pickBox->tMatrix = glm::translate(glm::mat4(1), pos);
         capturePos = false;
     }
 }
