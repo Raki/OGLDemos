@@ -194,8 +194,8 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
         double wx, wy; //window coords
         glfwGetCursorPos(window, &wx, &wy);
 
-        float x = (2.0f * wx) / WIN_WIDTH - 1.0f;
-        float y = 1.0f - (2.0f * wy) / WIN_HEIGHT;
+        float x = (2.0f * static_cast<float>(wx)) / WIN_WIDTH - 1.0f;
+        float y = 1.0f - (2.0f * static_cast<float>(wy)) / WIN_HEIGHT;
         float z = 1.0f;
         glm::vec3 ray_nds = glm::vec3(x, y, z);
         glm::vec4 ray_clip = glm::vec4(ray_nds.x, ray_nds.y, -1.0, 1.0);
@@ -418,7 +418,7 @@ void setupScene()
     scenObjects.push_back(floor);
 
 
-    lBox = GLUtility::getCubeVec3(0.2, 0.2, 0.2);
+    lBox = GLUtility::getCubeVec3(0.2f, 0.2f, 0.2f);
     lBox->color = glm::vec4(1.0);
     lBox->tMatrix = glm::translate(glm::mat4(1), light.position);
     lBox->pickColor = glm::vec4(1.0);
@@ -446,7 +446,7 @@ void setupScene()
     tri->tMatrix = glm::translate(glm::mat4(1), glm::vec3(4, 0, 0));
     tri->pickColor = glm::vec4(1, 0, 0, 1);
     
-    pickBox= GLUtility::getCubeVec3(0.2, 0.2, 0.2);
+    pickBox= GLUtility::getCubeVec3(0.2f, 0.2f, 0.2f);
     pickBox->color = glm::vec4(Color::green,1);
     pickBox->pickColor = glm::vec4(Color::green, 1);
 
@@ -658,7 +658,7 @@ void renderFrame()
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glfwGetCursorPos(window, &sx, &sy);
         float d;
-        glReadPixels(sx, WIN_HEIGHT - sy, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &d);
+        glReadPixels(static_cast<GLint>(sx), WIN_HEIGHT - static_cast<GLint>(sy), 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &d);
         auto pos = glm::unProject(glm::vec3(sx, WIN_HEIGHT - sy, d), camera->viewMat, projectionMat, glm::vec4(0, 0, WIN_WIDTH, WIN_HEIGHT));
         pickBox->tMatrix = glm::translate(glm::mat4(1), pos);
         capturePos = false;
