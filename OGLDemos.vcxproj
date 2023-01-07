@@ -26,7 +26,7 @@
     <ClCompile Include="imgui-1.88\imgui_draw.cpp" />
     <ClCompile Include="imgui-1.88\imgui_tables.cpp" />
     <ClCompile Include="imgui-1.88\imgui_widgets.cpp" />
-    <ClCompile Include="Transformations.cpp" />
+    <ClCompile Include="OpenStreetMapSample.cpp" />
     <ClCompile Include="utils\Camera.cpp" />
     <ClCompile Include="utils\Colors.cpp" />
     <ClCompile Include="utils\GLMaterial.cpp" />
@@ -137,10 +137,11 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;NOMINMAX;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>imgui-1.88;imgui-1.88\backends;utils</AdditionalIncludeDirectories>
       <MinimalRebuild>true</MinimalRebuild>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -154,7 +155,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;NOMINMAX;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>imgui-1.88;imgui-1.88\backends;utils</AdditionalIncludeDirectories>
     </ClCompile>

@@ -13,6 +13,9 @@
     <Filter Include="imgui">
       <UniqueIdentifier>{3e76618a-eb6d-4720-832b-78fc607b25c4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="libosmium">
+      <UniqueIdentifier>{05a4be7e-7ba3-4f29-bafd-f095fa4a97cc}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="utils\Camera.cpp">
@@ -57,7 +60,7 @@
     <ClCompile Include="imgui-1.88\imgui_tables.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
-    <ClCompile Include="Transformations.cpp">
+    <ClCompile Include="OpenStreetMapSample.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
