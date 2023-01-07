@@ -23,3 +23,12 @@ Installation:
 Running:
 
 Open visual studio solution and run 
+
+* OpenStreetMapSample
+
+
+  This demo loads .osm file and display it's contents
+
+![image](https://user-images.githubusercontent.com/824691/211126560-a8f51551-b35f-4c3f-a563-b0d633ab8dc5.png)
+
+
