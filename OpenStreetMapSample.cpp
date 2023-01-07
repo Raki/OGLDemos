@@ -33,12 +33,9 @@ float fov=45;
 glm::mat4 projectionMat = glm::perspective(fov, (float)WIN_WIDTH / (float)WIN_HEIGHT, 0.1f, 10000.0f);
 glm::mat4 globalModelMat = glm::mat4(1);
 
-std::shared_ptr<GlslProgram> dirLightProgram,basicProgram;
-std::vector<std::shared_ptr<Mesh>> scenObjects,defaultMatObjs;
-std::shared_ptr<Mesh> fsQuad,lBox,pickBox;
-std::shared_ptr<FrameBuffer> layer1,layer2;
-std::shared_ptr<Texture2D> diffuseTex, specularTex;
-glm::vec3 lightPosition = glm::vec3(5, 6, 0);
+std::shared_ptr<GlslProgram> basicProgram;
+std::shared_ptr<Mesh> streetMap;
+std::shared_ptr<FrameBuffer> layer1;
 
 struct Framebuffer
 {
@@ -65,9 +62,18 @@ vector<DrawRange> ranges;
 map<GLuint, vector<DrawRange>> rangesPerTex;
 
 float gRotation = 90;
+glm::vec3 gOrigin = glm::vec3(0);
 
-std::map<int64_t, osmium::geom::Coordinates> osmNodes;
-std::vector<std::vector<glm::vec3>> waysData;
+struct NodeGLInfo
+{
+    glm::dvec3 pos;
+    unsigned int ind;
+};
+
+std::map<int64_t, NodeGLInfo> osmNodes;
+std::vector<glm::vec3> nodePositions;
+std::vector<unsigned int> nodeIndices;
+std::vector<DrawRange> waysData;
 const double DMAX = std::numeric_limits<double>::max();
 glm::dvec2 mercMax=glm::dvec3(- DMAX);
 glm::dvec2 mercMin= glm::dvec3(DMAX);
@@ -91,31 +97,36 @@ struct CountHandler : public osmium::handler::Handler {
             mercMax.y = c.y;
         else if (c.y < mercMin.y)
             mercMin.y = c.y;
+        
+        nodePositions.push_back(glm::vec3(c.x, c.y, 0));
+        NodeGLInfo info;
+        info.pos = glm::dvec3(c.x, c.y, 0);
+        info.ind = nodePositions.size() - 1;
+        osmNodes[node.id()] = info;
 
-        osmNodes[node.id()] = c;
         ++nodes;
     }
 
     // This callback is called by osmium::apply for each way in the data.
     void way(const osmium::Way& way) noexcept {
         
-        std::vector<glm::vec3> posArr;
+        DrawRange dRange;
 
         static auto xRange = mercMax.x - mercMin.x;
         static auto yRange = mercMax.y - mercMin.y;
         
+        dRange.offset = nodeIndices.size();
         for (auto node_ref : way.nodes())
         {
-            auto rf = node_ref.ref();
-            auto  coordinate = osmNodes[node_ref.ref()];
-            //const osmium::geom::Coordinates c = osmium::geom::lonlat_to_mercator(location);
-            posArr.push_back(glm::vec3((- xRange / 2) + (coordinate.x - mercMin.x),(-yRange/2)+ (coordinate.y - mercMin.y), 0));
+            auto  coordinate = osmNodes[node_ref.ref()].pos;
+            auto pos = glm::vec3((- xRange / 2) + (coordinate.x - mercMin.x),(-yRange/2)+ (coordinate.y - mercMin.y), 0);
+            nodePositions.at(osmNodes[node_ref.ref()].ind) = pos;
+            nodeIndices.push_back(osmNodes[node_ref.ref()].ind);
         }
-        //waysData.push_back(posArr);
+        dRange.drawCount = nodeIndices.size() - dRange.offset;
+        dRange.color = Color::getRandomColor();
 
-        auto polyline = GLUtility::getPolygon(posArr);
-        polyline->color = glm::vec4(Color::getRandomColor(), 1.0);
-        defaultMatObjs.push_back(polyline);
+        waysData.push_back(dRange);
 
         ++ways;
     }
@@ -169,25 +180,25 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
     {
         
     }
-    else if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS)
+    else if (key == GLFW_KEY_RIGHT /*&& action == GLFW_PRESS*/)
     {
-        
+        gOrigin.x += 2;
+        globalModelMat = glm::translate(glm::mat4(1), gOrigin);
     }
-    else if (key == GLFW_KEY_LEFT && action == GLFW_PRESS)
+    else if (key == GLFW_KEY_LEFT /*&& action == GLFW_PRESS*/)
     {
-        
+        gOrigin.x -= 2;
+        globalModelMat = glm::translate(glm::mat4(1), gOrigin);
     }
     else if (key == GLFW_KEY_UP /*&& action == GLFW_PRESS*/)
     {
-        fov -= 0.05f;
-        projectionMat = glm::perspective(fov, (float)WIN_WIDTH / (float)WIN_HEIGHT, 0.1f, 100.0f);
-        
+        gOrigin.y += 2;
+        globalModelMat = glm::translate(glm::mat4(1), gOrigin);
     }
     else if (key == GLFW_KEY_DOWN /*&& action == GLFW_PRESS*/)
     {
-        fov += 0.05f;
-        projectionMat = glm::perspective(fov, (float)WIN_WIDTH / (float)WIN_HEIGHT, 0.1f, 100.0f);
-        
+        gOrigin.y -= 2;
+        globalModelMat = glm::translate(glm::mat4(1), gOrigin);
     }
     else if (key == GLFW_KEY_Z /*&& action == GLFW_PRESS*/)
     {
@@ -234,53 +245,12 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
         glm::vec3 rayOrigin = camera->eye;
         glm::vec3 rayEnd = rayOrigin + (20.0f * ray_wor);
 
-        
-
         std::vector<glm::vec3> tri;
         std::vector<glm::vec3> ray;
         
         ray.push_back(rayOrigin);
         ray.push_back(rayEnd);
-
-
-        for (auto &obj: defaultMatObjs)
-        {
-            if (obj->drawCommand != GL_TRIANGLES)
-                continue;
-            const auto& boxVData = obj->vDataVec3;
-            const auto& boxIData = obj->iData;
-            float dist = 10000;
-            int hitCount = 0;
-            for (auto i = 0; i < boxIData.size(); i += 3)
-            {
-                auto v1 = (boxVData.size()>0)?boxVData.at(boxIData.at(i)):obj->vData.at(boxIData.at(i)).pos;
-                auto v2 = (boxVData.size() > 0) ? boxVData.at(boxIData.at(i+1)) : obj->vData.at(boxIData.at(i+1)).pos;
-                auto v3 = (boxVData.size() > 0) ? boxVData.at(boxIData.at(i+2)) : obj->vData.at(boxIData.at(i+2)).pos;
-                v1 = glm::vec3(obj->tMatrix * glm::vec4(v1, 1));
-                v2 = glm::vec3(obj->tMatrix * glm::vec4(v2, 1));
-                v3 = glm::vec3(obj->tMatrix * glm::vec4(v3, 1));
-
-                tri.push_back(v1);
-                tri.push_back(v2);
-                tri.push_back(v3);
-                glm::vec3 intr;
-                if (GLUtility::intersects3D_RayTrinagle(ray, tri, intr) == 1)
-                {
-                    obj->color = glm::vec4(Color::purple, 1.0);
-                    std::cout << intr.x << " " << intr.y << " " << intr.z << cendl;
-                    hitCount += 1;
-                }
-                else
-                {
-                    // blueBox->color = glm::vec4(Color::red, 1.0);
-                }
-                tri.clear();
-            }
-            if (hitCount == 0)
-            {
-                obj->color = obj->pickColor;
-            }
-        }
+        
     }
 }
 
@@ -329,15 +299,11 @@ void createWindow()
 void initGL()
 {
     glEnable(GL_DEPTH_TEST);
-    
-    
 
     glViewport(0, 0, WIN_WIDTH, WIN_HEIGHT);
     glClearColor(0.1f, 0.2f, 0.3f, 1.0f);
 
-    dirLightProgram = std::make_shared<GlslProgram>(Utility::readFileContents("shaders/vMatSpotLight.glsl"), Utility::readFileContents("shaders/fMatSpotLight.glsl"));
     basicProgram = std::make_shared<GlslProgram>(Utility::readFileContents("shaders/vBasic.glsl"), Utility::readFileContents("shaders/fBasic.glsl"));
-    
     
     setupScene();
     setupCamera();
@@ -346,10 +312,6 @@ void initGL()
 
     auto diffTex = GLUtility::makeTexture("img/container_diffuse.png");
     auto specTex = GLUtility::makeTexture("img/container_specular.png");
-    diffuseTex = std::make_shared<Texture2D>();
-    diffuseTex->texture = diffTex;
-    specularTex = std::make_shared<Texture2D>();
-    specularTex->texture = specTex;
 }
 
 void cleanGL()
@@ -375,20 +337,21 @@ void initImgui()
     //"#version 130"
 }
 
-void setupCamera() {
-
+void setupCamera()
+{
     auto eye = glm::vec3(0, 0, 500);
     auto center = glm::vec3(0, 0, 0);
     auto up = glm::vec3(0, 1, 0);
     camera = std::make_shared<Camera>(eye,center,up);
-    
     camera->viewMat = glm::lookAt(camera->eye, camera->center, camera->up);
 }
 
 void setupScene()
 {
-    fsQuad = GLUtility::getfsQuad();
     readOSMFile();
+    streetMap = std::make_shared<Mesh>(nodePositions, nodeIndices);
+    streetMap->drawCommand = GL_LINE_STRIP;
+    globalModelMat = glm::translate(glm::mat4(1), gOrigin);
 }
 
 std::shared_ptr<FrameBuffer> getFboMSA(std::shared_ptr<FrameBuffer> refFbo, int samples)
@@ -454,28 +417,24 @@ void renderFrame()
    
     glBindFramebuffer(GL_FRAMEBUFFER, layer1->fbo);
     glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-
-    
     
     basicProgram->bind();
-    
     basicProgram->setMat4f("view", camera->viewMat);
     basicProgram->setMat4f("proj", projectionMat);
     basicProgram->setVec3f("color", Color::red);
 
     glm::mat4 mv;
     
-    for (auto& obj : defaultMatObjs)
+    for (auto& dRange : waysData)
     {
-        mv = obj->tMatrix * globalModelMat;
+        mv = globalModelMat;
         basicProgram->setMat4f("model", mv);
-        basicProgram->setVec3f("color", glm::vec3(obj->color));
+        basicProgram->setVec3f("color", dRange.color);
         basicProgram->bindAllUniforms();
-        obj->draw();
+        streetMap->draw(dRange);
     }
 
     basicProgram->unbind();
-
     
     //blitting
     auto err = glGetError();
@@ -494,7 +453,7 @@ void renderImgui()
     ImGui::NewFrame();
 
     {
-        ImGui::Begin("Ray Triangle Picking");                     
+        ImGui::Begin("Open Street Map Sample");                     
 
         ImGui::Text("Use UP & DOWN arrows for zoom-In&Out");
         ImGui::SliderFloat("Rotation", &gRotation, 0, 360);

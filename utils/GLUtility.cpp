@@ -996,6 +996,15 @@ namespace GLUtility
 		glBindVertexArray(0);
 	}
 
+	void Mesh::draw(DrawRange range)
+	{
+		glBindVertexArray(vao);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+		glDrawElements(drawCommand, range.drawCount, GL_UNSIGNED_INT, (void*)(range.offset * sizeof(GLuint)));
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+		glBindVertexArray(0);
+	}
+
 	void Mesh::drawInstanced(int iCount)
 	{
 		glBindVertexArray(vao);

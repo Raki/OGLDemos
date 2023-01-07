@@ -18,6 +18,7 @@ namespace GLUtility
 		unsigned int drawCount;
 		GLuint texID = 0;
 		GLuint sTexID = 0;
+		glm::vec3 color;
 	};
 
 	struct VertexData
@@ -112,6 +113,7 @@ namespace GLUtility
 		void updateIbo();
 		void draw();
 		void draw(vector<DrawRange> ranges);
+		void draw(DrawRange range);
 		void drawInstanced(int iCount);
 		~Mesh();
 	};
