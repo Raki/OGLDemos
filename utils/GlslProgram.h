@@ -22,10 +22,12 @@ class GlslProgram
 	
 	GLuint vShaderID;
 	GLuint fShaderID;
+	GLuint gShaderID;
 	GLuint cShaderID;
 public:
 	GLuint programID;
 	GlslProgram(string vShaderStr, string fShaderStr);
+	GlslProgram(string vShaderStr, string gShaderStr,string fShaderStr);
 	GlslProgram(string cShaderStr);
 
 	GLuint createShader(const string shaderStr, GLenum type);

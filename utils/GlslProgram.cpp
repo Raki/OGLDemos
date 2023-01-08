@@ -55,6 +55,58 @@ GlslProgram::GlslProgram(string vShaderStr, string fShaderStr)
 	
 }
 
+GlslProgram::GlslProgram(string vShaderStr, string gShaderStr, string fShaderStr)
+{
+	vShaderID = createShader(vShaderStr, GL_VERTEX_SHADER);
+	fShaderID = createShader(fShaderStr, GL_FRAGMENT_SHADER);
+	gShaderID = createShader(gShaderStr, GL_GEOMETRY_SHADER);
+
+	if (vShaderID > 0 && fShaderID > 0 && gShaderID > 0)
+	{
+		programID = glCreateProgram();
+		glAttachShader(programID, vShaderID);
+		glAttachShader(programID, fShaderID);
+		glAttachShader(programID, gShaderID);
+		glLinkProgram(programID);
+
+		GLint isLinked = 0;
+		glGetProgramiv(programID, GL_LINK_STATUS, &isLinked);
+		if (isLinked == GL_FALSE)
+		{
+			GLint maxLength = 0;
+			glGetProgramiv(programID, GL_INFO_LOG_LENGTH, &maxLength);
+
+			if (maxLength > 0)
+			{
+				// The maxLength includes the NULL character
+				std::vector<GLchar> infoLog(maxLength);
+				glGetProgramInfoLog(programID, maxLength, &maxLength, &infoLog[0]);
+
+				freeShaders();
+				// The program is useless now. So delete it.
+				glDeleteProgram(programID);
+
+				// Provide the infolog in whatever manner you deem best.
+				// Exit with failure.
+				std::cout << "program linking error" << infoLog.data() << '\n';
+				programID = 0;
+			}
+			else
+			{
+				freeShaders();
+				// The program is useless now. So delete it.
+				glDeleteProgram(programID);
+				std::cout << "program linking error : no log string" << '\n';
+			}
+		}
+		else
+		{
+			// Always detach shaders after a successful link.
+			freeShaders();
+		}
+	}
+}
+
 //for compute shader
 GlslProgram::GlslProgram(string cShaderStr)
 {
@@ -148,6 +200,8 @@ void GlslProgram::freeShaders()
 			glDetachShader(programID, this->fShaderID);
 		if (cShaderID > 0)
 			glDetachShader(programID, this->cShaderID);
+		if (gShaderID > 0)
+			glDetachShader(programID, this->gShaderID);
 	}
 
 	if (vShaderID > 0)
@@ -165,6 +219,11 @@ void GlslProgram::freeShaders()
 	{
 		glDeleteShader(cShaderID);
 		cShaderID = 0;
+	}
+	if (gShaderID > 0)
+	{
+		glDeleteShader(gShaderID);
+		gShaderID = 0;
 	}
 }
 
