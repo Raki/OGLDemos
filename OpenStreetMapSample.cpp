@@ -87,7 +87,7 @@ struct CountHandler : public osmium::handler::Handler {
     std::uint64_t ways = 0;
     std::uint64_t closedWays = 0;
     std::uint64_t relations = 0;
-    //std::map<std::string,size_t> 
+    std::map<std::string, size_t> natMap;
 
     // This callback is called by osmium::apply for each node in the data.
     void node(const osmium::Node& node) noexcept {
@@ -115,17 +115,70 @@ struct CountHandler : public osmium::handler::Handler {
     // This callback is called by osmium::apply for each way in the data.
     void way(const osmium::Way& way) noexcept {
         
-        /*for (const auto& t : way.tags())
-        {
-            std::cout << t.key() << " " << t.value() << cendl;
-        }*/
-
         DrawRange dRange;
+        dRange.color = Color::getRandomColor();
 
         static auto xRange = mercMax.x - mercMin.x;
         static auto yRange = mercMax.y - mercMin.y;
-
+        
         auto isBuilding = false;
+
+        for (const auto& tag : way.tags())
+        {
+            const auto& key = tag.key();
+            const auto& val = tag.value();
+            auto keyStr = std::string(key);
+            auto keyVal = std::string(val);
+            if (keyStr.compare("natural") == 0)
+            {
+                //grassland
+                //tree_row
+                //water
+                if (keyVal.compare("grassland") == 0||
+                    keyVal.compare("grass") == 0)
+                {
+                    // 189,226,200
+                    dRange.color = glm::vec3(189. / 255., 226. / 255., 200. / 255.);
+                }
+                else if (keyVal.compare("tree_row") == 0)
+                {
+                    //55,125,34
+                    dRange.color = glm::vec3(55. / 255., 125. / 255., 34. / 255.);
+                }
+                else if (keyVal.compare("water") == 0)
+                {
+                    //156,192,249
+                    dRange.color = glm::vec3(156. / 255., 192. / 255., 249. / 255.);
+                }
+            }
+            else if (keyStr.compare("landuse") == 0)
+            {
+                natMap[keyVal] += 1;
+                //comm
+                //con
+                //reli
+                //retail
+                //grass
+                //recreat
+                if (keyVal.compare("grass") == 0)
+                {
+                    dRange.color = glm::vec3(189. / 255., 226. / 255., 200. / 255.);
+                }
+                else if(keyVal.compare("commercial") == 0)
+                    dRange.color = glm::vec3(125./255.);
+                else if (keyVal.compare("construction") == 0)
+                    dRange.color = glm::vec3(125. / 255.);
+                else if (keyVal.compare("retail") == 0)
+                    dRange.color = glm::vec3(200./255.);
+                else if (keyVal.compare("religious") == 0)
+                    dRange.color = glm::vec3(240. / 255., 134. / 255., 80. / 255.);
+            }
+            else if (keyStr.compare("highway") == 0)
+            {
+                //dRange.color = glm::vec3(250. / 255.);
+            }
+        }
+
         if (way.tags().has_tag("building","yes"))
         {
             isBuilding = true;
@@ -135,7 +188,7 @@ struct CountHandler : public osmium::handler::Handler {
         {
             std::vector<p2t::Point*> points;
             dRange.offset = nodeIndices.size();
-            if (!isBuilding)
+            /*if (!isBuilding)
             {
                 for (auto node_ref : way.nodes())
                 {
@@ -146,7 +199,7 @@ struct CountHandler : public osmium::handler::Handler {
                 }
                 dRange.drawCommand = GL_LINE_STRIP;
             }
-            else
+            else*/
             {
                 for (auto node_ref : way.nodes())
                 {
@@ -181,7 +234,7 @@ struct CountHandler : public osmium::handler::Handler {
             }
             
             dRange.drawCount = nodeIndices.size() - dRange.offset;
-            dRange.color = Color::getRandomColor();
+            
 
             waysData.push_back(dRange);
             closedWays++;
