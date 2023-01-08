@@ -17,6 +17,8 @@
 #include <osmium/geom/wkt.hpp>
 #include <osmium/geom/factory.hpp>
 
+#include <poly2tri/poly2tri.h>
+
 using namespace GLUtility;
 
 #pragma region vars
@@ -78,11 +80,14 @@ const double DMAX = std::numeric_limits<double>::max();
 glm::dvec2 mercMax=glm::dvec3(- DMAX);
 glm::dvec2 mercMin= glm::dvec3(DMAX);
 
+
 struct CountHandler : public osmium::handler::Handler {
 
     std::uint64_t nodes = 0;
     std::uint64_t ways = 0;
+    std::uint64_t closedWays = 0;
     std::uint64_t relations = 0;
+    //std::map<std::string,size_t> 
 
     // This callback is called by osmium::apply for each node in the data.
     void node(const osmium::Node& node) noexcept {
@@ -110,23 +115,78 @@ struct CountHandler : public osmium::handler::Handler {
     // This callback is called by osmium::apply for each way in the data.
     void way(const osmium::Way& way) noexcept {
         
+        /*for (const auto& t : way.tags())
+        {
+            std::cout << t.key() << " " << t.value() << cendl;
+        }*/
+
         DrawRange dRange;
 
         static auto xRange = mercMax.x - mercMin.x;
         static auto yRange = mercMax.y - mercMin.y;
-        
-        dRange.offset = nodeIndices.size();
-        for (auto node_ref : way.nodes())
-        {
-            auto  coordinate = osmNodes[node_ref.ref()].pos;
-            auto pos = glm::vec3((- xRange / 2) + (coordinate.x - mercMin.x),(-yRange/2)+ (coordinate.y - mercMin.y), 0);
-            nodePositions.at(osmNodes[node_ref.ref()].ind) = pos;
-            nodeIndices.push_back(osmNodes[node_ref.ref()].ind);
-        }
-        dRange.drawCount = nodeIndices.size() - dRange.offset;
-        dRange.color = Color::getRandomColor();
 
-        waysData.push_back(dRange);
+        auto isBuilding = false;
+        if (way.tags().has_tag("building","yes"))
+        {
+            isBuilding = true;
+        }
+        
+        if (way.is_closed())
+        {
+            std::vector<p2t::Point*> points;
+            dRange.offset = nodeIndices.size();
+            if (!isBuilding)
+            {
+                for (auto node_ref : way.nodes())
+                {
+                    auto  coordinate = osmNodes[node_ref.ref()].pos;
+                    auto pos = glm::vec3((-xRange / 2) + (coordinate.x - mercMin.x), (-yRange / 2) + (coordinate.y - mercMin.y), 0);
+                    nodePositions.at(osmNodes[node_ref.ref()].ind) = pos;
+                    nodeIndices.push_back(osmNodes[node_ref.ref()].ind);
+                }
+                dRange.drawCommand = GL_LINE_STRIP;
+            }
+            else
+            {
+                for (auto node_ref : way.nodes())
+                {
+                    auto  coordinate = osmNodes[node_ref.ref()].pos;
+                    glm::dvec3 pos = glm::dvec3((-xRange / 2) + (coordinate.x - mercMin.x), (-yRange / 2) + (coordinate.y - mercMin.y), 0);
+                    p2t::Point* pt = new p2t::Point();
+                    pt->x = pos.x;
+                    pt->y = pos.y;
+                    points.push_back(pt);
+                }
+                points.pop_back();
+                if (points.size()>0)
+                {
+                    dRange.drawCommand = GL_TRIANGLES;
+                    p2t::CDT* cdt = new p2t::CDT(points);
+                    vector<p2t::Triangle*> triangles;
+                    cdt->Triangulate();
+                    triangles = cdt->GetTriangles();
+
+                    for (auto& triangle : triangles)
+                    {
+                        for (size_t p = 0; p <3; p++)
+                        {
+                            auto pt = triangle->GetPoint(p);
+                            nodePositions.push_back(glm::vec3(pt->x, pt->y, 0));
+                            nodeIndices.push_back(nodePositions.size() - 1);
+                        }
+                    }
+
+                    delete cdt;
+                }
+            }
+            
+            dRange.drawCount = nodeIndices.size() - dRange.offset;
+            dRange.color = Color::getRandomColor();
+
+            waysData.push_back(dRange);
+            closedWays++;
+            
+        }
 
         ++ways;
     }
@@ -182,22 +242,22 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
     }
     else if (key == GLFW_KEY_RIGHT /*&& action == GLFW_PRESS*/)
     {
-        gOrigin.x += 2;
+        gOrigin.x += 10;
         globalModelMat = glm::translate(glm::mat4(1), gOrigin);
     }
     else if (key == GLFW_KEY_LEFT /*&& action == GLFW_PRESS*/)
     {
-        gOrigin.x -= 2;
+        gOrigin.x -= 10;
         globalModelMat = glm::translate(glm::mat4(1), gOrigin);
     }
     else if (key == GLFW_KEY_UP /*&& action == GLFW_PRESS*/)
     {
-        gOrigin.y += 2;
+        gOrigin.y += 10;
         globalModelMat = glm::translate(glm::mat4(1), gOrigin);
     }
     else if (key == GLFW_KEY_DOWN /*&& action == GLFW_PRESS*/)
     {
-        gOrigin.y -= 2;
+        gOrigin.y -= 10;
         globalModelMat = glm::translate(glm::mat4(1), gOrigin);
     }
     else if (key == GLFW_KEY_Z /*&& action == GLFW_PRESS*/)
@@ -299,6 +359,7 @@ void createWindow()
 void initGL()
 {
     glEnable(GL_DEPTH_TEST);
+    //glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
 
     glViewport(0, 0, WIN_WIDTH, WIN_HEIGHT);
     glClearColor(0.1f, 0.2f, 0.3f, 1.0f);
@@ -350,7 +411,6 @@ void setupScene()
 {
     readOSMFile();
     streetMap = std::make_shared<Mesh>(nodePositions, nodeIndices);
-    streetMap->drawCommand = GL_LINE_STRIP;
     globalModelMat = glm::translate(glm::mat4(1), gOrigin);
 }
 
@@ -495,6 +555,7 @@ void readOSMFile()
 
         std::cout << "Nodes: " << handler.nodes << "\n";
         std::cout << "Ways: " << handler.ways << "\n";
+        std::cout << "Closed Ways: " << handler.closedWays << "\n";
         std::cout << "Relations: " << handler.relations << "\n";
 
         // Because of the huge amount of OSM data, some Osmium-based programs

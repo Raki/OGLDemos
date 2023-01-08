@@ -18,6 +18,7 @@ namespace GLUtility
 		unsigned int drawCount;
 		GLuint texID = 0;
 		GLuint sTexID = 0;
+		GLenum drawCommand=GL_TRIANGLES;
 		glm::vec3 color;
 	};
 

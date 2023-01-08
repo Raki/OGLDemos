@@ -1000,7 +1000,7 @@ namespace GLUtility
 	{
 		glBindVertexArray(vao);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-		glDrawElements(drawCommand, range.drawCount, GL_UNSIGNED_INT, (void*)(range.offset * sizeof(GLuint)));
+		glDrawElements(range.drawCommand, range.drawCount, GL_UNSIGNED_INT, (void*)(range.offset * sizeof(GLuint)));
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 		glBindVertexArray(0);
 	}
