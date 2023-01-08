@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="GeometryShaderBasic.cpp" />
     <ClCompile Include="imgui-1.88\backends\imgui_impl_glfw.cpp" />
     <ClCompile Include="imgui-1.88\backends\imgui_impl_opengl3.cpp" />
     <ClCompile Include="imgui-1.88\imgui.cpp" />
@@ -26,7 +27,6 @@
     <ClCompile Include="imgui-1.88\imgui_draw.cpp" />
     <ClCompile Include="imgui-1.88\imgui_tables.cpp" />
     <ClCompile Include="imgui-1.88\imgui_widgets.cpp" />
-    <ClCompile Include="OpenStreetMapSample.cpp" />
     <ClCompile Include="utils\Camera.cpp" />
     <ClCompile Include="utils\Colors.cpp" />
     <ClCompile Include="utils\GLMaterial.cpp" />
@@ -50,6 +50,7 @@
   <ItemGroup>
     <None Include="shaders\fBasic.glsl" />
     <None Include="shaders\fMatSpotLight.glsl" />
+    <None Include="shaders\geometryShaderBasic.glsl" />
     <None Include="shaders\vBasic.glsl" />
     <None Include="shaders\vMatSpotLight.glsl" />
   </ItemGroup>

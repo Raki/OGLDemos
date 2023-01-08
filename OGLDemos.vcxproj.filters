@@ -60,7 +60,7 @@
     <ClCompile Include="imgui-1.88\imgui_tables.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
-    <ClCompile Include="OpenStreetMapSample.cpp">
+    <ClCompile Include="GeometryShaderBasic.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
@@ -107,6 +107,9 @@
       <Filter>shaders</Filter>
     </None>
     <None Include="shaders\vBasic.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\geometryShaderBasic.glsl">
       <Filter>shaders</Filter>
     </None>
   </ItemGroup>
