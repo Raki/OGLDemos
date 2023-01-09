@@ -390,7 +390,8 @@ void updateFrame()
 {
     auto t = glfwGetTime()*20;
     auto theta = (int)t % 360;
-   
+    
+    tLength = glm::radians((float)t);
     //scenObjects.at(2)->tMatrix = glm::translate(glm::mat4(1), glm::vec3(bluePos[0], bluePos[1], bluePos[2]));
     //scenObjects.at(1)->tMatrix = glm::translate(glm::mat4(1), glm::vec3(orangePos[0], orangePos[1], orangePos[2]));
     light.position.x = sin(glm::radians((float)t))*5;
