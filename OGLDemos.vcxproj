@@ -19,7 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="GeometryShaderBasic.cpp" />
+    <ClCompile Include="GeometryShaderDemo.cpp" />
     <ClCompile Include="imgui-1.88\backends\imgui_impl_glfw.cpp" />
     <ClCompile Include="imgui-1.88\backends\imgui_impl_opengl3.cpp" />
     <ClCompile Include="imgui-1.88\imgui.cpp" />
@@ -51,6 +51,9 @@
     <None Include="shaders\fBasic.glsl" />
     <None Include="shaders\fMatSpotLight.glsl" />
     <None Include="shaders\geometryShaderBasic.glsl" />
+    <None Include="shaders\gs\fMatSpotLight.glsl" />
+    <None Include="shaders\gs\gMatSpotLight.glsl" />
+    <None Include="shaders\gs\vMatSpotLight.glsl" />
     <None Include="shaders\vBasic.glsl" />
     <None Include="shaders\vMatSpotLight.glsl" />
   </ItemGroup>

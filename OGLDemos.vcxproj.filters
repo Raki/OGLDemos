@@ -16,6 +16,9 @@
     <Filter Include="libosmium">
       <UniqueIdentifier>{05a4be7e-7ba3-4f29-bafd-f095fa4a97cc}</UniqueIdentifier>
     </Filter>
+    <Filter Include="shaders\gs">
+      <UniqueIdentifier>{0ffb5251-fe49-4ef1-9618-d9ec18a7b21c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="utils\Camera.cpp">
@@ -60,7 +63,7 @@
     <ClCompile Include="imgui-1.88\imgui_tables.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
-    <ClCompile Include="GeometryShaderBasic.cpp">
+    <ClCompile Include="GeometryShaderDemo.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
@@ -111,6 +114,15 @@
     </None>
     <None Include="shaders\geometryShaderBasic.glsl">
       <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\gs\fMatSpotLight.glsl">
+      <Filter>shaders\gs</Filter>
+    </None>
+    <None Include="shaders\gs\gMatSpotLight.glsl">
+      <Filter>shaders\gs</Filter>
+    </None>
+    <None Include="shaders\gs\vMatSpotLight.glsl">
+      <Filter>shaders\gs</Filter>
     </None>
   </ItemGroup>
 </Project>

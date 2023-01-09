@@ -350,3 +350,4 @@ MigrationBackup/
 .ionide/
  
 imgui.ini
+osm/Toronto.osm
