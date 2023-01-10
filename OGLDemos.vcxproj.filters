@@ -63,7 +63,7 @@
     <ClCompile Include="imgui-1.88\imgui_tables.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
-    <ClCompile Include="GeometryShaderDemo.cpp">
+    <ClCompile Include="GSDemoViewNormals.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
@@ -122,6 +122,15 @@
       <Filter>shaders\gs</Filter>
     </None>
     <None Include="shaders\gs\vMatSpotLight.glsl">
+      <Filter>shaders\gs</Filter>
+    </None>
+    <None Include="shaders\gs\gNorm.glsl">
+      <Filter>shaders\gs</Filter>
+    </None>
+    <None Include="shaders\gs\vNorm.glsl">
+      <Filter>shaders\gs</Filter>
+    </None>
+    <None Include="shaders\gs\fNorm.glsl">
       <Filter>shaders\gs</Filter>
     </None>
   </ItemGroup>

@@ -31,21 +31,21 @@ void main()
 {
 	vec3 norm = getNormal();
 	float rnd = random( gs_uv[0] );
-	gl_Position = gl_in[0].gl_Position+glm::vec4((((sin(nDist) + 1.0) / 2.0) *norm*2.*rnd),0);
+	gl_Position = gl_in[0].gl_Position+vec4((((sin(nDist) + 1.0) / 2.0) *norm*2.*rnd),0);
 	fs_normal = gs_normal[0];
 	fs_uv= gs_uv[0];
 	fs_fragPos= gs_fragPos[0];
 	EmitVertex();
 
 	rnd = random( gs_uv[1] );
-	gl_Position = gl_in[1].gl_Position+glm::vec4((((sin(nDist) + 1.0) / 2.0) *norm*2.*rnd),0);
+	gl_Position = gl_in[1].gl_Position+vec4((((sin(nDist) + 1.0) / 2.0) *norm*2.*rnd),0);
 	fs_normal = gs_normal[1];
 	fs_uv= gs_uv[1];
 	fs_fragPos= gs_fragPos[1];
 	EmitVertex();
 
 	rnd = random( gs_uv[2] );
-	gl_Position = gl_in[2].gl_Position+glm::vec4((((sin(nDist) + 1.0) / 2.0) *norm*2.*rnd),0);
+	gl_Position = gl_in[2].gl_Position+vec4((((sin(nDist) + 1.0) / 2.0) *norm*2.*rnd),0);
 	fs_normal = gs_normal[2];
 	fs_uv= gs_uv[2];
 	fs_fragPos= gs_fragPos[2];
