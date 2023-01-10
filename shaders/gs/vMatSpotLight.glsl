@@ -9,16 +9,22 @@ layout (location=0) in vec3 position;
 layout (location=1) in vec3 normal;
 layout (location=2) in vec2 uvcoord;
 
-layout (location=0) out vec3 gs_normal;
-layout (location=1) out vec3 gs_fragPos;
-layout (location=2) out vec2 gs_uv;
+//layout (location=0) out vec3 gs_normal;
+//layout (location=1) out vec3 gs_fragPos;
+//layout (location=2) out vec2 gs_uv;
 
+out VS_OUT
+{
+	vec3 normal;
+	vec3 fragPos;
+	vec2 uv;
+}vs_out;
 
 
 void main()
 {
-	gs_normal = mat3(nrmlMat)*normal;
-	gs_uv = uvcoord;
+	vs_out.normal = mat3(nrmlMat)*normal;
+	vs_out.uv = uvcoord;
 	gl_Position = proj*view*model*vec4(position,1.0);
-	gs_fragPos = vec3(model*vec4(position,1.0));
+	vs_out.fragPos = vec3(model*vec4(position,1.0));
 }

@@ -3,14 +3,27 @@
 layout (triangles) in;
 layout (triangle_strip, max_vertices=3) out;
 
-layout (location=0) in vec3 gs_normal[];
-layout (location=1) in vec3 gs_fragPos[];
-layout (location=2) in vec2 gs_uv[];
+//layout (location=0) in vec3 gs_normal[];
+//layout (location=1) in vec3 gs_fragPos[];
+//layout (location=2) in vec2 gs_uv[];
 
+in VS_OUT
+{
+	vec3 normal;
+	vec3 fragPos;
+	vec2 uv;
+}gs_in[];
 
-layout (location=0) out vec3 fs_normal;
-layout (location=1) out vec3 fs_fragPos;
-layout (location=2) out vec2 fs_uv;
+out GS_OUT
+{
+	vec3 normal;
+	vec3 fragPos;
+	vec2 uv;
+}gs_out;
+
+//layout (location=0) out vec3 fs_normal;
+//layout (location=1) out vec3 fs_fragPos;
+//layout (location=2) out vec2 fs_uv;
 
 uniform float nDist;
 
@@ -30,25 +43,25 @@ float random (vec2 st) {
 void main()
 {
 	vec3 norm = getNormal();
-	float rnd = random( gs_uv[0] );
+	float rnd = random(gs_in[0].uv );
 	gl_Position = gl_in[0].gl_Position+vec4((((sin(nDist) + 1.0) / 2.0) *norm*2.*rnd),0);
-	fs_normal = gs_normal[0];
-	fs_uv= gs_uv[0];
-	fs_fragPos= gs_fragPos[0];
+	gs_out.normal= gs_in[0].normal;
+	gs_out.uv= gs_in[0].uv;
+	gs_out.fragPos= gs_in[0].fragPos;
 	EmitVertex();
 
-	rnd = random( gs_uv[1] );
+	rnd = random( gs_in[1].uv );
 	gl_Position = gl_in[1].gl_Position+vec4((((sin(nDist) + 1.0) / 2.0) *norm*2.*rnd),0);
-	fs_normal = gs_normal[1];
-	fs_uv= gs_uv[1];
-	fs_fragPos= gs_fragPos[1];
+	gs_out.normal= gs_in[1].normal;
+	gs_out.uv= gs_in[1].uv;
+	gs_out.fragPos= gs_in[1].fragPos;
 	EmitVertex();
 
-	rnd = random( gs_uv[2] );
+	rnd = random( gs_in[2].uv );
 	gl_Position = gl_in[2].gl_Position+vec4((((sin(nDist) + 1.0) / 2.0) *norm*2.*rnd),0);
-	fs_normal = gs_normal[2];
-	fs_uv= gs_uv[2];
-	fs_fragPos= gs_fragPos[2];
+	gs_out.normal= gs_in[2].normal;
+	gs_out.uv= gs_in[2].uv;
+	gs_out.fragPos= gs_in[2].fragPos;
 	EmitVertex();
 
 	EndPrimitive();

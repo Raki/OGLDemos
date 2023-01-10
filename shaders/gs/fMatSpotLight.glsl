@@ -26,10 +26,17 @@ struct Light {
 
 out vec4 fragColor;
 
-layout (location=0) in vec3 fs_normal;
-layout (location=1) in vec3 fs_fragPos;
-layout (location=2) in vec2 fs_uv;
+in GS_OUT
+{
+	vec3 normal;
+	vec3 fragPos;
+	vec2 uv;
+}fs_in;
 
+//layout (location=0) in vec3 fs_normal;
+//layout (location=1) in vec3 fs_fragPos;
+//layout (location=2) in vec2 fs_uv;
+//
 
 uniform vec3 viewPos;
 uniform Material material;
@@ -37,9 +44,9 @@ uniform Light light;
 
 void main()
 {
-	vec3 normal_out = fs_normal;
-	vec3 fragPos = fs_fragPos;
-	vec2 uv_out = fs_uv;
+	vec3 normal_out = fs_in.normal;
+	vec3 fragPos = fs_in.fragPos;
+	vec2 uv_out = fs_in.uv;
 
 	vec3 result;
 	vec3 lightDir = normalize(light.position - fragPos);  
