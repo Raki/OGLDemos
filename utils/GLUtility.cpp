@@ -190,6 +190,19 @@ namespace GLUtility
 
 	}
 
+	unsigned char* getImageData(std::string filename, int& width, int& height, int& nChannels)
+	{
+		stbi_set_flip_vertically_on_load(1);
+		unsigned char* data = stbi_load(filename.c_str(), &width, &height, &nChannels, 0);
+		return data;
+	}
+
+	void freeImageData(unsigned char* data)
+	{
+		if (data != NULL)
+			stbi_image_free(data);
+	}
+
 	std::shared_ptr<FrameBuffer> makeFbo(int width, int height,int samples)
 	{
 		std::shared_ptr<FrameBuffer> fbObj = std::make_shared<FrameBuffer>();
@@ -575,6 +588,26 @@ namespace GLUtility
 		bbMesh->drawCommand = GL_LINES;
 		return bbMesh;
 	}
+
+	/*std::shared_ptr<Mesh> getMeshFromHeightMap(std::string heightMapPath)
+	{
+		int width, height, nrChannels;
+
+		stbi_set_flip_vertically_on_load(1);
+		unsigned char* data = stbi_load(heightMapPath.c_str(), &width, &height, &nrChannels, 0);
+		float yScale = 64.0f / 256.0f, yShift = 16.0f;
+		for (size_t h = 0; h < height; h++)
+		{
+			for (size_t w = 0; w < width; w++)
+			{
+				vector<char>pixelData(nrChannels);
+				memcpy(pixelData.data(), &data[(width*h*nrChannels)+w], nrChannels * sizeof(char));
+				glm::vec3 position = glm::vec3((- width / 2)+w,static_cast<int>(pixelData[0]*yScale-yShift), (-height / 2) + h);
+			}
+		}
+		stbi_image_free(data);
+
+	}*/
 
 	std::shared_ptr<Mesh> getRect(float width, float height, bool stroke)
 	{

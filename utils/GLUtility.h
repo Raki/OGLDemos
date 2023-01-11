@@ -154,6 +154,8 @@ namespace GLUtility
 	GLuint makeTexture(string fileName);
 	GLuint makeTexture(string fileName,glm::vec2 &dim);
 	GLuint makeCubeMap(vector<string> faces);
+	unsigned char* getImageData(std::string fileanme, int& width, int& height, int& nChannels);
+	void freeImageData(unsigned char* data);
 	std::shared_ptr<FrameBuffer> makeFbo(int width,int height,int samples);
 	
 	
@@ -163,6 +165,7 @@ namespace GLUtility
 	std::shared_ptr<Mesh> getCube(float width, float height, float depth);
 	std::shared_ptr<Mesh> getCubeVec3(float width, float height, float depth);
 	std::shared_ptr<Mesh> getBoudingBox(glm::vec3 bbMin,glm::vec3 bbMax);
+	std::shared_ptr<Mesh> getMeshFromHeightMap(std::string heightMapPath);
 	/*
 	* No normal info
 	*/
