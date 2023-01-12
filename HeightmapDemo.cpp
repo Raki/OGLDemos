@@ -88,9 +88,12 @@ std::shared_ptr<Framebuffer> blitContainer;
 LightInfo light;
 
 bool pMode = true;
+bool cMode = false;
 
 int hMapWidth;
 int hMapHeight;
+GLuint singleColor,multiColor;
+
 
 #pragma endregion 
 
@@ -254,6 +257,9 @@ void initGL()
         Utility::readFileContents("shaders/gs/gNorm.glsl"),
         Utility::readFileContents("shaders/gs/fNorm.glsl")
         );
+
+    singleColor = glGetSubroutineIndex(heightMapProgram->programID, GL_FRAGMENT_SHADER, "getSingleColor");
+    multiColor = glGetSubroutineIndex(heightMapProgram->programID, GL_FRAGMENT_SHADER, "getMultiColor");
 
     setupScene();
     setupCamera();
@@ -424,6 +430,11 @@ void renderFrame()
     glm::mat4 mv;
     heightMapProgram->bind();
     
+    if(cMode)
+        glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &multiColor);
+    else
+        glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &singleColor);
+
     mv = hMesh->tMatrix * globalModelMat;
     heightMapProgram->setMat4f("view", camera->viewMat);
     heightMapProgram->setMat4f("proj", projectionMat);
@@ -492,6 +503,7 @@ void renderImgui()
                 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         }
 
+        ImGui::Checkbox("Multi color", &cMode);
         ImGui::Text("Use A,W,S,D or Arrow keys to navigate in XZ plane");
         ImGui::Text("Use Z,X key navigate in Y axis");
         ImGui::Text("Use Ctrl+Z,X to change cam center");

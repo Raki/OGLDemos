@@ -133,5 +133,11 @@
     <None Include="shaders\gs\fNorm.glsl">
       <Filter>shaders\gs</Filter>
     </None>
+    <None Include="shaders\fHeightMap.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\vHeightMap.glsl">
+      <Filter>shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -49,6 +49,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\fBasic.glsl" />
+    <None Include="shaders\fHeightMap.glsl" />
     <None Include="shaders\fMatSpotLight.glsl" />
     <None Include="shaders\geometryShaderBasic.glsl" />
     <None Include="shaders\gs\fMatSpotLight.glsl" />
@@ -58,6 +59,7 @@
     <None Include="shaders\gs\vMatSpotLight.glsl" />
     <None Include="shaders\gs\vNorm.glsl" />
     <None Include="shaders\vBasic.glsl" />
+    <None Include="shaders\vHeightMap.glsl" />
     <None Include="shaders\vMatSpotLight.glsl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
