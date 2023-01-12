@@ -33,9 +33,15 @@ Open visual studio solution and run
 
 ![image](https://user-images.githubusercontent.com/824691/211213859-b4ff89a5-0ac4-4c96-a7e5-f8b37df97463.png)
 
+
 * Geometric Shader Demo
 
 ![image](https://user-images.githubusercontent.com/824691/211232098-51f3e063-701d-417b-9f1d-6b97ae8da78e.png)
+
+* HeightMap Demo
+
+![heightmap](https://user-images.githubusercontent.com/824691/211948333-8c4f32d9-391d-43b2-ad18-8bbec90f8596.png)
+
 
 
 
