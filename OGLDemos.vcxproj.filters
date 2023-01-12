@@ -63,7 +63,7 @@
     <ClCompile Include="imgui-1.88\imgui_tables.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
-    <ClCompile Include="HeightmapDemo.cpp">
+    <ClCompile Include="AnimatedTiles.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>

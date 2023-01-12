@@ -89,6 +89,21 @@ namespace GLUtility
 		
 	}
 
+	std::shared_ptr<Mesh> getTri(std::array<glm::vec3, 3> verts)
+	{
+		auto norm = getNormal(verts[0], verts[1], verts[2]);
+		norm = glm::normalize(norm);
+		vector<VertexData> vData = {
+			{verts[0],norm,glm::vec2(0,0)},
+			{verts[1],norm,glm::vec2(1,0)},
+			{verts[2],norm,glm::vec2(1,1)}
+		};
+		vector<unsigned int> iData = { 0,1,2 };
+		auto triMesh = std::make_shared<Mesh>(vData, iData);
+		triMesh->name = "Simple Triangle";
+		return triMesh;
+	}
+
 	//ToDo : check if file is missing
 	GLuint makeTexture(string fileName)
 	{

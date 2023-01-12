@@ -35,6 +35,12 @@ namespace GLUtility
 		glm::vec2 uv;
 	};
 
+	struct VDPosNorm
+	{
+		glm::vec3 pos;
+		glm::vec2 norm;
+	};
+
 	struct Texture2D
 	{
 		GLuint texture;
@@ -162,6 +168,7 @@ namespace GLUtility
 
 	void checkFrambufferStatus(GLuint fbo);
 	std::shared_ptr<Mesh> getSimpleTri();
+	std::shared_ptr<Mesh> getTri(std::array<glm::vec3,3> verts);
 	std::shared_ptr<Mesh> getCube(float width, float height, float depth);
 	std::shared_ptr<Mesh> getCubeVec3(float width, float height, float depth);
 	std::shared_ptr<Mesh> getBoudingBox(glm::vec3 bbMin,glm::vec3 bbMax);
