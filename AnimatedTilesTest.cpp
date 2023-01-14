@@ -59,6 +59,12 @@ struct MeshView
 };
 
 
+struct AnimEntity
+{
+    float srcTh, dstTh, speed;
+    size_t index;
+};
+
 GLFWwindow* window;
 auto closeWindow = false;
 auto capturePos = false;
@@ -73,6 +79,7 @@ glm::mat4 globalModelMat = glm::mat4(1);
 std::shared_ptr<GlslProgram> basicProgram, dirLightProgram,geomNormProgram;
 std::vector<std::shared_ptr<Mesh>> scenObjects,defaultMatObjs,geomShaderObjs;
 std::vector<MeshView> meshGroup;
+std::vector<AnimEntity> animQueue;
 std::shared_ptr<Mesh> lBox,rootMesh;
 std::shared_ptr<FrameBuffer> layer1;
 std::shared_ptr<Texture2D> diffuseTex, specularTex;
@@ -334,8 +341,8 @@ void setupScene()
     light.constant = 1.0f;
     light.linear = 0.045f;
     light.quadratic = 0.0075f;
-    light.cutOff = 40.0f;
-    light.outerCutOff = 60.0f;
+    light.cutOff = 80.0f;
+    light.outerCutOff = 90.0f;
 
 
     /*
@@ -367,6 +374,8 @@ void setupScene()
     rootView.speed = 0.05;
     rootView.color = Color::orange;
     
+    
+
     queue.push_back(rootView);
 
     meshGroup.push_back(rootView);
@@ -374,32 +383,48 @@ void setupScene()
     MeshView testViewRed;
     auto tMatrix = glm::translate(glm::mat4(1), rootView.rOrigin) * glm::rotate(glm::mat4(1), glm::radians(rootView.srcTh), GLUtility::Y_AXIS) * glm::translate(glm::mat4(1), -rootView.rOrigin);
     testViewRed.rOrigin = glm::vec3(tMatrix*glm::vec4(verts[0],1));
-    testViewRed.srcTh = 60;
-    testViewRed.dstTh = 60;
-    testViewRed.speed = 0.05;
+    testViewRed.srcTh = 0;
+    testViewRed.dstTh = 0;
     testViewRed.color = Color::red;
-    //testViewRed.visible = false;
     meshGroup.push_back(testViewRed);
+
+    AnimEntity aeRed;
+    aeRed.srcTh = 0;
+    aeRed.dstTh = 60;
+    aeRed.speed = 0.5;
+    aeRed.index = meshGroup.size()-1;
+    animQueue.push_back(aeRed);
 
 
     MeshView testViewGreen;
-    tMatrix = glm::translate(glm::mat4(1), testViewRed.rOrigin) * glm::rotate(glm::mat4(1), glm::radians(testViewRed.srcTh), GLUtility::Y_AXIS) * glm::translate(glm::mat4(1), -testViewRed.rOrigin);
-    auto vert0 = glm::vec3(tMatrix * glm::vec4(verts[0], 1));
-    auto vert1 = glm::vec3(tMatrix * glm::vec4(verts[1], 1));
-    auto vert2 = glm::vec3(tMatrix * glm::vec4(verts[2], 1));
-    auto orig = (vert0 + vert1 + vert2) / 3.0f;
-    testViewGreen.rOrigin = glm::vec3(tMatrix * glm::vec4(orig, 1));
-    testViewGreen.srcTh = 60;
-    testViewGreen.dstTh = 60;
-    testViewGreen.speed = 0.05;
+    tMatrix = glm::translate(glm::mat4(1), rootView.rOrigin) * glm::rotate(glm::mat4(1), glm::radians(rootView.srcTh), GLUtility::Y_AXIS) * glm::translate(glm::mat4(1), -rootView.rOrigin);
+    testViewGreen.rOrigin = glm::vec3(tMatrix * glm::vec4(verts[1], 1));
+    testViewGreen.srcTh = 0;
+    testViewGreen.dstTh = 0;
     testViewGreen.color = Color::green;
     meshGroup.push_back(testViewGreen);
+    
+    AnimEntity aeGreen;
+    aeGreen.srcTh = 0;
+    aeGreen.dstTh = 60;
+    aeGreen.speed = 0.5;
+    aeGreen.index = meshGroup.size() - 1;
+    animQueue.push_back(aeGreen);
 
-    //MeshView testViewBlue;
-    //testViewBlue.tMat = rootView.tMat * glm::translate(glm::mat4(1), vert2) * glm::rotate(glm::mat4(1), glm::radians(60.0f), GLUtility::Y_AXIS) * glm::translate(glm::mat4(1), -vert2);
-    //testViewBlue.color = Color::blue;
-    ////meshGroup.push_back(testViewBlue);
+    MeshView testViewBlue;
+    tMatrix = glm::translate(glm::mat4(1), rootView.rOrigin) * glm::rotate(glm::mat4(1), glm::radians(rootView.srcTh), GLUtility::Y_AXIS) * glm::translate(glm::mat4(1), -rootView.rOrigin);
+    testViewBlue.rOrigin = glm::vec3(tMatrix * glm::vec4(verts[2], 1));
+    testViewBlue.srcTh = 0;
+    testViewBlue.dstTh = 0;
+    testViewBlue.color = Color::blue;
+    meshGroup.push_back(testViewBlue);
 
+    AnimEntity aeBlue;
+    aeBlue.srcTh = 0;
+    aeBlue.dstTh = 60;
+    aeBlue.speed = 0.5;
+    aeBlue.index = meshGroup.size() - 1;
+    animQueue.push_back(aeBlue);
 
     lBox = GLUtility::getCubeVec3(0.2f, 0.2f, 0.2f);
     lBox->color = glm::vec4(1.0);
@@ -484,11 +509,21 @@ void updateFrame()
     tLength = glm::radians((float)t);
     //scenObjects.at(2)->tMatrix = glm::translate(glm::mat4(1), glm::vec3(bluePos[0], bluePos[1], bluePos[2]));
     //scenObjects.at(1)->tMatrix = glm::translate(glm::mat4(1), glm::vec3(orangePos[0], orangePos[1], orangePos[2]));
-    light.position.x = sin(glm::radians((float)t))*5;
+    //light.position.x = sin(glm::radians((float)t))*5;
     //camera->orbitY(glm::radians(gRotation));
     
     lBox->tMatrix = glm::translate(glm::mat4(1), light.position);
 
+    if (animQueue.size() > 0)
+    {
+        if (animQueue.at(0).srcTh < animQueue.at(0).dstTh)
+        {
+            animQueue.at(0).srcTh += animQueue.at(0).speed;
+            meshGroup.at(animQueue.at(0).index).srcTh = animQueue.at(0).srcTh;
+        }
+        else
+            animQueue.erase(animQueue.begin());
+    }
     
     for (auto &obj: meshGroup)
     {
