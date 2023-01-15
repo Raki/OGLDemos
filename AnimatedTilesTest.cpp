@@ -63,16 +63,43 @@ struct CheapMap
 {
     std::vector<glm::vec3> entries;
     std::vector<size_t> counts;
+    void push(glm::vec3 v)
+    {
+        auto ec = entryCount(v);
+        if (ec== std::numeric_limits<size_t>::max())
+        {
+            entries.push_back(v);
+            counts.push_back(0);
+        }
+        else
+        {
+            counts.at(ec) += 1;
+        }
+    }
+
+    size_t getCount(glm::vec3 v)
+    {
+        auto ec = entryCount(v);
+        if (ec != std::numeric_limits<size_t>::max())
+        {
+            return counts.at(ec);
+        }
+
+        return 0;
+    }
+
     size_t entryCount(glm::vec3 v)
     {
         auto itr = std::find(entries.begin(), entries.end(), v);
         if ( itr!= entries.end())
         {
-
+            auto ind = itr - entries.begin();
+            return ind;
         }
+        return std::numeric_limits<size_t>::max();
     }
 };
-
+CheapMap cheapMap;
 struct AnimEntity
 {
     float srcTh, dstTh, speed;
@@ -160,7 +187,18 @@ std::shared_ptr<ObjContainer> loadObjModel(std::string filePath,std::string defa
 
 
 #pragma region functions
+glm::vec3 roundTo4(glm::vec3 v)
+{
+    glm::vec3 resV;
+    resV.x = (int)(v.x * 10000 + .5);
+    resV.x = (float)resV.x / 10000;
+    resV.y = (int)(v.y * 10000 + .5);
+    resV.y = (float)resV.y / 10000;
+    resV.z = (int)(v.z * 10000 + .5);
+    resV.z = (float)resV.z / 10000;
 
+    return resV;
+}
 static void error_callback(int error, const char* description)
 {
     fprintf(stderr, "Error: %s\n", description);
@@ -587,32 +625,46 @@ void updateFrame()
     else
     {
         static size_t cnt = 0;
-        if(queue.size() > 0&&cnt<6)
+        if(queue.size() > 0)
         {
+            if (cnt == 6)
+                cnt += 0;
             cnt += 1;
             auto rootView = queue.at(0);
+            auto tMatrix = glm::translate(glm::mat4(1), rootView->rOrigin) * glm::rotate(glm::mat4(1), glm::radians(rootView->dstTh), GLUtility::Y_AXIS) * glm::translate(glm::mat4(1), -rootView->rOrigin) * (*rootView->parentMat.get());
+            auto rVert0 = glm::vec3(tMatrix* glm::vec4(verts[0], 1));
+            auto rVert1 = glm::vec3(tMatrix* glm::vec4(verts[1], 1));
+            auto rVert2 = glm::vec3(tMatrix* glm::vec4(verts[2], 1));
             queue.erase(queue.begin());
 
             meshGroup.push_back(rootView);
 
-            if (!rootView->vert0)
+            if (!rootView->vert0
+                && cheapMap.getCount(roundTo4(rVert0)) < 9
+                && cheapMap.getCount(roundTo4(rVert2)) < 9)
             {
                 rootView->vert0 = true;
                 auto testViewRed=std::make_shared<MeshView>();
                 testViewRed->vert1 = true;
-                auto tMatrix = glm::translate(glm::mat4(1), rootView->rOrigin) * glm::rotate(glm::mat4(1), glm::radians(rootView->dstTh), GLUtility::Y_AXIS) * glm::translate(glm::mat4(1), -rootView->rOrigin) * (*rootView->parentMat.get());
                 testViewRed->parentMat = std::make_shared<glm::mat4>(tMatrix);
                 testViewRed->rOrigin = glm::vec3(tMatrix * glm::vec4(verts[0], 1));
                 testViewRed->srcTh = 0;
                 testViewRed->dstTh = 60;
                 testViewRed->mIndex = meshGroup.size();
                 testViewRed->color = /*Color::red*/Color::getRandomColor();
+                auto redtMatrix = glm::translate(glm::mat4(1), testViewRed->rOrigin) * glm::rotate(glm::mat4(1), glm::radians(testViewRed->dstTh), GLUtility::Y_AXIS) * glm::translate(glm::mat4(1), -testViewRed->rOrigin) * (*testViewRed->parentMat.get());
+                auto redVert0 = glm::vec3(redtMatrix * glm::vec4(verts[0], 1));
+                auto redVert1 = glm::vec3(redtMatrix * glm::vec4(verts[1], 1));
+                    
                 meshGroup.push_back(testViewRed);
                 queue.push_back(testViewRed);
 
                 //side 2 of rootView
                 rootView->v0Grp.push_back(glm::ivec2(meshGroup.size() - 1,1));
                 rootView->v2Grp.push_back(glm::ivec2(meshGroup.size() - 1,1));
+                cheapMap.push(roundTo4(rVert0));
+                cheapMap.push(roundTo4(rVert2));
+                
                 if (rootView->v0Grp.size() >= 5)
                     rootView->vert0 = true;
                 if (rootView->v2Grp.size() >= 5)
@@ -621,6 +673,8 @@ void updateFrame()
                 //side 1 of testViewRed
                 testViewRed->v0Grp.push_back(glm::ivec2(rootView->mIndex, 2));
                 testViewRed->v1Grp.push_back(glm::ivec2(rootView->mIndex, 2));
+                cheapMap.push(roundTo4(redVert0));
+                cheapMap.push(roundTo4(redVert1));
                 if (testViewRed->v0Grp.size() >= 5)
                     testViewRed->vert0 = true;
                 if (testViewRed->v1Grp.size() >= 5)
@@ -629,29 +683,35 @@ void updateFrame()
                 AnimEntity aeRed;
                 aeRed.srcTh = 0;
                 aeRed.dstTh = 60;
-                aeRed.speed = 0.5;
+                aeRed.speed = 2;
                 aeRed.index = meshGroup.size() - 1;
                 animQueue.push_back(aeRed);
             }
 
-            if (!rootView->vert1)
+            if (!rootView->vert1 
+                && cheapMap.getCount(roundTo4(rVert0)) < 9
+                && cheapMap.getCount(roundTo4(rVert1)) < 9)
             {
                 rootView->vert1 = true;
                 auto testViewGreen=std::make_shared<MeshView>();
                 testViewGreen->vert2 = true;
-                auto tMatrix = glm::translate(glm::mat4(1), rootView->rOrigin) * glm::rotate(glm::mat4(1), glm::radians(rootView->dstTh), GLUtility::Y_AXIS) * glm::translate(glm::mat4(1), -rootView->rOrigin) * (*rootView->parentMat.get());
                 testViewGreen->parentMat = std::make_shared<glm::mat4>(tMatrix);;
                 testViewGreen->rOrigin = glm::vec3(tMatrix * glm::vec4(verts[1], 1));
                 testViewGreen->srcTh = 0;
                 testViewGreen->dstTh = 60;
                 testViewGreen->color = Color::getRandomColor();// Color::green;
                 testViewGreen->mIndex = meshGroup.size();
+                auto greentMatrix = glm::translate(glm::mat4(1), testViewGreen->rOrigin) * glm::rotate(glm::mat4(1), glm::radians(testViewGreen->dstTh), GLUtility::Y_AXIS) * glm::translate(glm::mat4(1), -testViewGreen->rOrigin) * (*testViewGreen->parentMat.get());
+                auto greenVert1 = glm::vec3(greentMatrix * glm::vec4(verts[1], 1));
+                auto greenVert2 = glm::vec3(greentMatrix * glm::vec4(verts[2], 1));
                 meshGroup.push_back(testViewGreen);
                 queue.push_back(testViewGreen);
 
                 //side 0 of rootView
                 rootView->v0Grp.push_back(glm::ivec2(meshGroup.size() - 1, 1));
                 rootView->v1Grp.push_back(glm::ivec2(meshGroup.size() - 1, 1));
+                cheapMap.push(roundTo4(rVert0));
+                cheapMap.push(roundTo4(rVert1));
                 if (rootView->v0Grp.size() >= 5)
                     rootView->vert0 = true;
                 if (rootView->v1Grp.size() >= 5)
@@ -660,6 +720,8 @@ void updateFrame()
                 //side 1 of testViewGreen
                 testViewGreen->v1Grp.push_back(glm::ivec2(rootView->mIndex, 0));
                 testViewGreen->v2Grp.push_back(glm::ivec2(rootView->mIndex, 0));
+                cheapMap.push(roundTo4(greenVert1));
+                cheapMap.push(roundTo4(greenVert2));
                 if (testViewGreen->v1Grp.size() >= 5)
                     testViewGreen->vert1 = true;
                 if (testViewGreen->v2Grp.size() >= 5)
@@ -668,29 +730,35 @@ void updateFrame()
                 AnimEntity aeGreen;
                 aeGreen.srcTh = 0;
                 aeGreen.dstTh = 60;
-                aeGreen.speed = 0.5;
+                aeGreen.speed = 2;
                 aeGreen.index = meshGroup.size() - 1;
                 animQueue.push_back(aeGreen);
             }
 
-            if (!rootView->vert2)
+            if (!rootView->vert2 
+                && cheapMap.getCount(roundTo4(rVert2)) < 9
+                && cheapMap.getCount(roundTo4(rVert1)) < 9)
             {
                 rootView->vert2 = true;
                 auto testViewBlue = std::make_shared<MeshView>();
                 testViewBlue->vert0 = true;
-                auto tMatrix = glm::translate(glm::mat4(1), rootView->rOrigin) * glm::rotate(glm::mat4(1), glm::radians(rootView->dstTh), GLUtility::Y_AXIS) * glm::translate(glm::mat4(1), -rootView->rOrigin) * (*rootView->parentMat.get());
                 testViewBlue->parentMat = std::make_shared<glm::mat4>(tMatrix);;
                 testViewBlue->rOrigin = glm::vec3(tMatrix * glm::vec4(verts[2], 1));
                 testViewBlue->srcTh = 0;
                 testViewBlue->dstTh = 60;
                 testViewBlue->color = Color::getRandomColor();// Color::blue;
                 testViewBlue->mIndex = meshGroup.size();
+                auto bluetMatrix = glm::translate(glm::mat4(1), testViewBlue->rOrigin) * glm::rotate(glm::mat4(1), glm::radians(testViewBlue->dstTh), GLUtility::Y_AXIS) * glm::translate(glm::mat4(1), -testViewBlue->rOrigin) * (*testViewBlue->parentMat.get());
+                auto blueVert0 = glm::vec3(bluetMatrix * glm::vec4(verts[0], 1));
+                auto blueVert2 = glm::vec3(bluetMatrix * glm::vec4(verts[2], 1));
                 meshGroup.push_back(testViewBlue);
                 queue.push_back(testViewBlue);
 
                 //side 1 of rootView
                 rootView->v1Grp.push_back(glm::ivec2(meshGroup.size() - 1, 2));
                 rootView->v2Grp.push_back(glm::ivec2(meshGroup.size() - 1, 2));
+                cheapMap.push(roundTo4(rVert1));
+                cheapMap.push(roundTo4(rVert2));
                 if (rootView->v1Grp.size() >= 5)
                     rootView->vert1 = true;
                 if (rootView->v2Grp.size() >= 5)
@@ -699,15 +767,18 @@ void updateFrame()
                 //side 2 of testViewBlue
                 testViewBlue->v0Grp.push_back(glm::ivec2(rootView->mIndex, 1));
                 testViewBlue->v2Grp.push_back(glm::ivec2(rootView->mIndex, 1));
+                cheapMap.push(roundTo4(blueVert0));
+                cheapMap.push(roundTo4(blueVert2));
                 if (testViewBlue->v0Grp.size() >= 5)
                     testViewBlue->vert0 = true;
                 if (testViewBlue->v2Grp.size() >= 5)
                     testViewBlue->vert2 = true;
 
+
                 AnimEntity aeBlue;
                 aeBlue.srcTh = 0;
                 aeBlue.dstTh = 60;
-                aeBlue.speed = 0.5;
+                aeBlue.speed = 2;
                 aeBlue.index = meshGroup.size() - 1;
                 animQueue.push_back(aeBlue);
             }
