@@ -46,7 +46,8 @@ struct LightInfo
 
 struct MeshView
 {
-    glm::mat4 tMat=glm::mat4(1),parentMat=glm::mat4(1);
+    std::shared_ptr<glm::mat4> tMat = std::make_shared<glm::mat4>(1);
+    std::shared_ptr<glm::mat4> parentMat = std::make_shared<glm::mat4>(1);
     glm::vec3 color,rOrigin;
     size_t mIndex;
     bool side0=false,side1=false,side2=false;
@@ -369,7 +370,7 @@ void setupScene()
     MeshView rootView;// , mView2, mView3, mView4;
     rootView.mIndex = 0;
     rootView.rOrigin = glm::vec3(0);// glm::vec3(glm::translate(glm::mat4(1), verts[0]) * glm::rotate(glm::mat4(1), glm::radians(60.0f), GLUtility::Y_AXIS) * glm::translate(glm::mat4(1), -verts[0]) * glm::vec4(0, 0, 0, 1));
-    rootView.srcTh = 30;
+    rootView.srcTh = 45;
     rootView.dstTh = 0;
     rootView.speed = 0.05;
     rootView.color = Color::orange;
@@ -378,11 +379,13 @@ void setupScene()
 
     queue.push_back(rootView);
 
+
+
     meshGroup.push_back(rootView);
     
     MeshView testViewRed;
     auto tMatrix = glm::translate(glm::mat4(1), rootView.rOrigin) * glm::rotate(glm::mat4(1), glm::radians(rootView.srcTh), GLUtility::Y_AXIS) * glm::translate(glm::mat4(1), -rootView.rOrigin);
-    testViewRed.parentMat = tMatrix;
+    testViewRed.parentMat = std::make_shared<glm::mat4>(tMatrix);
     testViewRed.rOrigin = glm::vec3(tMatrix*glm::vec4(verts[0],1));
     testViewRed.srcTh = 0;
     testViewRed.dstTh = 0;
@@ -399,7 +402,7 @@ void setupScene()
 
     MeshView testViewGreen;
     tMatrix = glm::translate(glm::mat4(1), rootView.rOrigin) * glm::rotate(glm::mat4(1), glm::radians(rootView.srcTh), GLUtility::Y_AXIS) * glm::translate(glm::mat4(1), -rootView.rOrigin);
-    testViewGreen.parentMat = tMatrix;
+    testViewGreen.parentMat = std::make_shared<glm::mat4>(tMatrix);;
     testViewGreen.rOrigin = glm::vec3(tMatrix * glm::vec4(verts[1], 1));
     testViewGreen.srcTh = 0;
     testViewGreen.dstTh = 0;
@@ -415,7 +418,7 @@ void setupScene()
 
     MeshView testViewBlue;
     tMatrix = glm::translate(glm::mat4(1), rootView.rOrigin) * glm::rotate(glm::mat4(1), glm::radians(rootView.srcTh), GLUtility::Y_AXIS) * glm::translate(glm::mat4(1), -rootView.rOrigin);
-    testViewBlue.parentMat = tMatrix;
+    testViewBlue.parentMat = std::make_shared<glm::mat4>(tMatrix);;
     testViewBlue.rOrigin = glm::vec3(tMatrix * glm::vec4(verts[2], 1));
     testViewBlue.srcTh = 0;
     testViewBlue.dstTh = 0;
@@ -428,6 +431,40 @@ void setupScene()
     aeBlue.speed = 0.5;
     aeBlue.index = meshGroup.size() - 1;
     animQueue.push_back(aeBlue);
+
+
+    //
+    MeshView testViewPurple;
+    tMatrix = glm::translate(glm::mat4(1), testViewRed.rOrigin) * glm::rotate(glm::mat4(1), glm::radians(60.f), GLUtility::Y_AXIS) * glm::translate(glm::mat4(1), -testViewRed.rOrigin)* (*testViewRed.parentMat.get());
+    testViewPurple.parentMat = std::make_shared<glm::mat4>(tMatrix);
+    testViewPurple.rOrigin = glm::vec3(tMatrix * glm::vec4(verts[0], 1));
+    testViewPurple.srcTh = 0;
+    testViewPurple.dstTh = 0;
+    testViewPurple.color = Color::purple;
+    meshGroup.push_back(testViewPurple);
+
+    AnimEntity aePurple;
+    aePurple.srcTh = 0;
+    aePurple.dstTh = 60;
+    aePurple.speed = 0.5;
+    aePurple.index = meshGroup.size() - 1;
+    animQueue.push_back(aePurple);
+
+    MeshView testViewYellow;
+    tMatrix = glm::translate(glm::mat4(1), testViewRed.rOrigin) * glm::rotate(glm::mat4(1), glm::radians(60.f), GLUtility::Y_AXIS) * glm::translate(glm::mat4(1), -testViewRed.rOrigin) * (*testViewRed.parentMat.get());
+    testViewYellow.parentMat = std::make_shared<glm::mat4>(tMatrix);
+    testViewYellow.rOrigin = glm::vec3(tMatrix * glm::vec4(verts[2], 1));
+    testViewYellow.srcTh = 0;
+    testViewYellow.dstTh = 0;
+    testViewYellow.color = Color::grey;
+    meshGroup.push_back(testViewYellow);
+
+    AnimEntity aeYellow;
+    aeYellow.srcTh = 0;
+    aeYellow.dstTh = 60;
+    aeYellow.speed = 0.5;
+    aeYellow.index = meshGroup.size() - 1;
+    animQueue.push_back(aeYellow);
 
     lBox = GLUtility::getCubeVec3(0.2f, 0.2f, 0.2f);
     lBox->color = glm::vec4(1.0);
@@ -592,7 +629,7 @@ void renderFrame()
             continue;
 
         auto tMatrix = glm::translate(glm::mat4(1), obj.rOrigin)* glm::rotate(glm::mat4(1), glm::radians(obj.srcTh), GLUtility::Y_AXIS)* glm::translate(glm::mat4(1), -obj.rOrigin);
-        auto mv = tMatrix * obj.parentMat*globalModelMat;
+        auto mv = tMatrix * (*obj.parentMat.get()) *globalModelMat;
         
         auto nrmlMat = glm::transpose(glm::inverse(mv));
         dirLightProgram->setVec3f("material.diffuse", obj.color);
