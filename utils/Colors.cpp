@@ -30,6 +30,7 @@ namespace Color
 
 	glm::vec3 getRandomColor()
 	{
+		srand(time(NULL));
 		int i = rand() % totalColors;
 
 		return colrArr[i];

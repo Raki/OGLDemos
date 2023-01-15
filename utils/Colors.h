@@ -1,5 +1,6 @@
 #pragma once
 #include <glm/glm.hpp>
+#include <ctime>
 namespace Color
 {
 	extern glm::vec3 red;

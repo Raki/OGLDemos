@@ -50,7 +50,7 @@ struct MeshView
     std::shared_ptr<glm::mat4> parentMat = std::make_shared<glm::mat4>(1);
     glm::vec3 color,rOrigin;
     size_t mIndex;
-    bool side0=false,side1=false,side2=false;
+    bool vert0=false,vert1=false,vert2=false;
     //Each grp will have max of 6 entries
     //where each entry represents index of meshview 
     //and side(0,1,2) of the meshview
@@ -59,6 +59,19 @@ struct MeshView
     bool visible = true;
 };
 
+struct CheapMap
+{
+    std::vector<glm::vec3> entries;
+    std::vector<size_t> counts;
+    size_t entryCount(glm::vec3 v)
+    {
+        auto itr = std::find(entries.begin(), entries.end(), v);
+        if ( itr!= entries.end())
+        {
+
+        }
+    }
+};
 
 struct AnimEntity
 {
@@ -68,7 +81,8 @@ struct AnimEntity
 
 GLFWwindow* window;
 auto closeWindow = false;
-auto capturePos = false;
+auto startAnim = false;
+
 
 std::shared_ptr<Camera> camera;
 float fov=45;
@@ -79,7 +93,7 @@ glm::mat4 globalModelMat = glm::mat4(1);
 
 std::shared_ptr<GlslProgram> basicProgram, dirLightProgram,geomNormProgram;
 std::vector<std::shared_ptr<Mesh>> scenObjects,defaultMatObjs,geomShaderObjs;
-std::vector<MeshView> meshGroup;
+std::vector<std::shared_ptr<MeshView>> meshGroup;
 std::vector<AnimEntity> animQueue;
 std::shared_ptr<Mesh> lBox,rootMesh;
 std::shared_ptr<FrameBuffer> layer1;
@@ -120,7 +134,7 @@ float tLength = 0.1;
 float camSpeed = 0.1;
 
 std::array<glm::vec3, 3> verts;
-std::vector<MeshView> queue;
+std::vector<std::shared_ptr<MeshView>> queue;
 
 #pragma endregion 
 
@@ -367,20 +381,20 @@ void setupScene()
 
     rootMesh = GLUtility::getTri(verts);
     rootMesh->color = glm::vec4(Color::orange, 1.);
-    MeshView rootView;// , mView2, mView3, mView4;
-    rootView.mIndex = 0;
-    rootView.rOrigin = glm::vec3(0);// glm::vec3(glm::translate(glm::mat4(1), verts[0]) * glm::rotate(glm::mat4(1), glm::radians(60.0f), GLUtility::Y_AXIS) * glm::translate(glm::mat4(1), -verts[0]) * glm::vec4(0, 0, 0, 1));
-    rootView.srcTh = 45;
-    rootView.dstTh = 45;
-    rootView.speed = 0.05;
-    rootView.color = Color::orange;
+    auto rootView= std::make_shared<MeshView>();// , mView2, mView3, mView4;
+    rootView->mIndex = 0;
+    rootView->rOrigin = glm::vec3(0);// glm::vec3(glm::translate(glm::mat4(1), verts[0]) * glm::rotate(glm::mat4(1), glm::radians(60.0f), GLUtility::Y_AXIS) * glm::translate(glm::mat4(1), -verts[0]) * glm::vec4(0, 0, 0, 1));
+    rootView->srcTh = 45;
+    rootView->dstTh = 45;
+    rootView->speed = 0.05;
+    rootView->color = Color::orange;
     
     
 
     queue.push_back(rootView);
 
     size_t cnt = 0;
-    while (queue.size()>0&&cnt<2)
+   /* while (queue.size()>0&&cnt<2)
     {
         cnt++;
         auto rootView = queue.at(0);
@@ -437,7 +451,7 @@ void setupScene()
         aeBlue.speed = 0.5;
         aeBlue.index = meshGroup.size() - 1;
         animQueue.push_back(aeBlue);
-    }
+    }*/
 
     //
    /* MeshView testViewPurple;
@@ -559,18 +573,147 @@ void updateFrame()
     //camera->orbitY(glm::radians(gRotation));
     
     lBox->tMatrix = glm::translate(glm::mat4(1), light.position);
-
+    if(startAnim)
     if (animQueue.size() > 0)
     {
         if (animQueue.at(0).srcTh < animQueue.at(0).dstTh)
         {
             animQueue.at(0).srcTh += animQueue.at(0).speed;
-            meshGroup.at(animQueue.at(0).index).srcTh = animQueue.at(0).srcTh;
+            meshGroup.at(animQueue.at(0).index)->srcTh = animQueue.at(0).srcTh;
         }
         else
             animQueue.erase(animQueue.begin());
     }
-    
+    else
+    {
+        static size_t cnt = 0;
+        if(queue.size() > 0&&cnt<6)
+        {
+            cnt += 1;
+            auto rootView = queue.at(0);
+            queue.erase(queue.begin());
+
+            meshGroup.push_back(rootView);
+
+            if (!rootView->vert0)
+            {
+                rootView->vert0 = true;
+                auto testViewRed=std::make_shared<MeshView>();
+                testViewRed->vert1 = true;
+                auto tMatrix = glm::translate(glm::mat4(1), rootView->rOrigin) * glm::rotate(glm::mat4(1), glm::radians(rootView->dstTh), GLUtility::Y_AXIS) * glm::translate(glm::mat4(1), -rootView->rOrigin) * (*rootView->parentMat.get());
+                testViewRed->parentMat = std::make_shared<glm::mat4>(tMatrix);
+                testViewRed->rOrigin = glm::vec3(tMatrix * glm::vec4(verts[0], 1));
+                testViewRed->srcTh = 0;
+                testViewRed->dstTh = 60;
+                testViewRed->mIndex = meshGroup.size();
+                testViewRed->color = /*Color::red*/Color::getRandomColor();
+                meshGroup.push_back(testViewRed);
+                queue.push_back(testViewRed);
+
+                //side 2 of rootView
+                rootView->v0Grp.push_back(glm::ivec2(meshGroup.size() - 1,1));
+                rootView->v2Grp.push_back(glm::ivec2(meshGroup.size() - 1,1));
+                if (rootView->v0Grp.size() >= 5)
+                    rootView->vert0 = true;
+                if (rootView->v2Grp.size() >= 5)
+                    rootView->vert2 = true;
+
+                //side 1 of testViewRed
+                testViewRed->v0Grp.push_back(glm::ivec2(rootView->mIndex, 2));
+                testViewRed->v1Grp.push_back(glm::ivec2(rootView->mIndex, 2));
+                if (testViewRed->v0Grp.size() >= 5)
+                    testViewRed->vert0 = true;
+                if (testViewRed->v1Grp.size() >= 5)
+                    testViewRed->vert1 = true;
+
+                AnimEntity aeRed;
+                aeRed.srcTh = 0;
+                aeRed.dstTh = 60;
+                aeRed.speed = 0.5;
+                aeRed.index = meshGroup.size() - 1;
+                animQueue.push_back(aeRed);
+            }
+
+            if (!rootView->vert1)
+            {
+                rootView->vert1 = true;
+                auto testViewGreen=std::make_shared<MeshView>();
+                testViewGreen->vert2 = true;
+                auto tMatrix = glm::translate(glm::mat4(1), rootView->rOrigin) * glm::rotate(glm::mat4(1), glm::radians(rootView->dstTh), GLUtility::Y_AXIS) * glm::translate(glm::mat4(1), -rootView->rOrigin) * (*rootView->parentMat.get());
+                testViewGreen->parentMat = std::make_shared<glm::mat4>(tMatrix);;
+                testViewGreen->rOrigin = glm::vec3(tMatrix * glm::vec4(verts[1], 1));
+                testViewGreen->srcTh = 0;
+                testViewGreen->dstTh = 60;
+                testViewGreen->color = Color::getRandomColor();// Color::green;
+                testViewGreen->mIndex = meshGroup.size();
+                meshGroup.push_back(testViewGreen);
+                queue.push_back(testViewGreen);
+
+                //side 0 of rootView
+                rootView->v0Grp.push_back(glm::ivec2(meshGroup.size() - 1, 1));
+                rootView->v1Grp.push_back(glm::ivec2(meshGroup.size() - 1, 1));
+                if (rootView->v0Grp.size() >= 5)
+                    rootView->vert0 = true;
+                if (rootView->v1Grp.size() >= 5)
+                    rootView->vert1 = true;
+
+                //side 1 of testViewGreen
+                testViewGreen->v1Grp.push_back(glm::ivec2(rootView->mIndex, 0));
+                testViewGreen->v2Grp.push_back(glm::ivec2(rootView->mIndex, 0));
+                if (testViewGreen->v1Grp.size() >= 5)
+                    testViewGreen->vert1 = true;
+                if (testViewGreen->v2Grp.size() >= 5)
+                    testViewGreen->vert2 = true;
+
+                AnimEntity aeGreen;
+                aeGreen.srcTh = 0;
+                aeGreen.dstTh = 60;
+                aeGreen.speed = 0.5;
+                aeGreen.index = meshGroup.size() - 1;
+                animQueue.push_back(aeGreen);
+            }
+
+            if (!rootView->vert2)
+            {
+                rootView->vert2 = true;
+                auto testViewBlue = std::make_shared<MeshView>();
+                testViewBlue->vert0 = true;
+                auto tMatrix = glm::translate(glm::mat4(1), rootView->rOrigin) * glm::rotate(glm::mat4(1), glm::radians(rootView->dstTh), GLUtility::Y_AXIS) * glm::translate(glm::mat4(1), -rootView->rOrigin) * (*rootView->parentMat.get());
+                testViewBlue->parentMat = std::make_shared<glm::mat4>(tMatrix);;
+                testViewBlue->rOrigin = glm::vec3(tMatrix * glm::vec4(verts[2], 1));
+                testViewBlue->srcTh = 0;
+                testViewBlue->dstTh = 60;
+                testViewBlue->color = Color::getRandomColor();// Color::blue;
+                testViewBlue->mIndex = meshGroup.size();
+                meshGroup.push_back(testViewBlue);
+                queue.push_back(testViewBlue);
+
+                //side 1 of rootView
+                rootView->v1Grp.push_back(glm::ivec2(meshGroup.size() - 1, 2));
+                rootView->v2Grp.push_back(glm::ivec2(meshGroup.size() - 1, 2));
+                if (rootView->v1Grp.size() >= 5)
+                    rootView->vert1 = true;
+                if (rootView->v2Grp.size() >= 5)
+                    rootView->vert2 = true;
+
+                //side 2 of testViewBlue
+                testViewBlue->v0Grp.push_back(glm::ivec2(rootView->mIndex, 1));
+                testViewBlue->v2Grp.push_back(glm::ivec2(rootView->mIndex, 1));
+                if (testViewBlue->v0Grp.size() >= 5)
+                    testViewBlue->vert0 = true;
+                if (testViewBlue->v2Grp.size() >= 5)
+                    testViewBlue->vert2 = true;
+
+                AnimEntity aeBlue;
+                aeBlue.srcTh = 0;
+                aeBlue.dstTh = 60;
+                aeBlue.speed = 0.5;
+                aeBlue.index = meshGroup.size() - 1;
+                animQueue.push_back(aeBlue);
+            }
+        }
+    }
+
     //for (auto &obj: meshGroup)
     //{
     //    if (obj.srcTh < obj.dstTh)
@@ -631,14 +774,14 @@ void renderFrame()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, rootMesh->ibo);
     for (const auto& obj : meshGroup)
     {
-        if (!obj.visible)
+        if (!obj->visible)
             continue;
 
-        auto tMatrix = glm::translate(glm::mat4(1), obj.rOrigin)* glm::rotate(glm::mat4(1), glm::radians(obj.srcTh), GLUtility::Y_AXIS)* glm::translate(glm::mat4(1), -obj.rOrigin);
-        auto mv = tMatrix * (*obj.parentMat.get()) *globalModelMat;
+        auto tMatrix = glm::translate(glm::mat4(1), obj->rOrigin)* glm::rotate(glm::mat4(1), glm::radians(obj->srcTh), GLUtility::Y_AXIS)* glm::translate(glm::mat4(1), -obj->rOrigin);
+        auto mv = tMatrix * (*obj->parentMat.get()) *globalModelMat;
         
         auto nrmlMat = glm::transpose(glm::inverse(mv));
-        dirLightProgram->setVec3f("material.diffuse", obj.color);
+        dirLightProgram->setVec3f("material.diffuse", obj->color);
         dirLightProgram->setMat4f("model", mv);
         dirLightProgram->setMat4f("nrmlMat", nrmlMat);
         dirLightProgram->bindAllUniforms();
@@ -687,8 +830,9 @@ void renderImgui()
     ImGui::NewFrame();
 
     {
-        ImGui::Begin("Geometry Shader Demo");                     
+        ImGui::Begin("Dynamic tile demo");                     
 
+        ImGui::Checkbox("Start animation", &startAnim);
         ImGui::Text("Use UP & DOWN arrows for zoom-In&Out");
         ImGui::SliderFloat("Norm Distance", &tLength, 0, 1);
         ImGui::SliderFloat("Scene Y Rotation", &gRotation, 0, 360);
