@@ -41,6 +41,13 @@ namespace GLUtility
 		glm::vec2 norm;
 	};
 
+	struct VDPosNormColr
+	{
+		glm::vec3 pos;
+		glm::vec3 norm;
+		glm::vec3 color;
+	};
+
 	struct Texture2D
 	{
 		GLuint texture;
@@ -101,6 +108,7 @@ namespace GLUtility
 	{
 		vector<glm::vec3> vDataVec3;
 		vector<VertexData> vData;
+		vector<VDPosNormColr> vdPosNrmClr;
 		vector<unsigned int> iData;
 		vector<Texture> textures;
 
@@ -115,6 +123,7 @@ namespace GLUtility
 		GLuint vbo, ibo, vao;
 
 		Mesh(vector<VertexData> vData, vector<unsigned int> iData);
+		Mesh(vector<VDPosNormColr> vData, vector<unsigned int> iData);
 		Mesh(vector<glm::vec3> vData, vector<unsigned int> iData);
 		Mesh(vector<VertexData> vData, vector<unsigned int> iData,vector<Texture> textures);
 		void updateIbo();
@@ -153,6 +162,7 @@ namespace GLUtility
 
 
 	GLuint makeVetexBufferObject(vector<VertexData> data);
+	GLuint makeVetexBufferObject(vector<VDPosNormColr> data);
 	GLuint makeVetexBufferObject(vector<glm::vec3> data);
 	GLuint makeIndexBufferObject(vector<unsigned int> data);
 	GLuint makeVertexArrayObject(GLuint vbo, GLuint ibo);

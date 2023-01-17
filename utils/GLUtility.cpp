@@ -17,6 +17,15 @@ namespace GLUtility
 		return buffer;
 	}
 
+	GLuint makeVetexBufferObject(vector<VDPosNormColr> data)
+	{
+		GLuint buffer;
+		glGenBuffers(1, &buffer);
+		glBindBuffer(GL_ARRAY_BUFFER, buffer);
+		glBufferData(GL_ARRAY_BUFFER, data.size() * sizeof(VDPosNormColr), data.data(), GL_STATIC_DRAW);
+		return buffer;
+	}
+
 	GLuint makeVetexBufferObject(vector<glm::vec3> data)
 	{
 		GLuint buffer;
@@ -989,6 +998,27 @@ namespace GLUtility
 		vbo = makeVetexBufferObject(vData);
 		ibo = makeIndexBufferObject(iData);
 		vao = makeVertexArrayObject(vbo, ibo);
+		drawCount = (unsigned int)iData.size();
+		tMatrix = glm::mat4(1);
+	}
+
+	Mesh::Mesh(vector<VDPosNormColr> vData, vector<unsigned int> iData)
+	{
+		this->vdPosNrmClr = vData;
+		this->iData = iData;
+		vbo = makeVetexBufferObject(vData);
+		ibo = makeIndexBufferObject(iData);
+		glGenVertexArrays(1, &vao);
+		glBindVertexArray(vao);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo);
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(VDPosNormColr), (void*)0);
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(VDPosNormColr), (void*)sizeof(glm::vec3));
+		glEnableVertexAttribArray(2);
+		glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(VDPosNormColr), (void*)(sizeof(glm::vec3) * 2));
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindVertexArray(0);
 		drawCount = (unsigned int)iData.size();
 		tMatrix = glm::mat4(1);
 	}
