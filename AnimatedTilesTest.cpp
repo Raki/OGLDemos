@@ -625,9 +625,9 @@ void updateFrame()
     else
     {
         static size_t cnt = 0;
-        if(queue.size() > 0)
+        if(queue.size() > 0&& cnt<50)
         {
-            if (cnt == 6)
+            if (cnt == 25)
                 cnt += 0;
             cnt += 1;
             auto rootView = queue.at(0);
@@ -651,7 +651,8 @@ void updateFrame()
                 testViewRed->srcTh = 0;
                 testViewRed->dstTh = 60;
                 testViewRed->mIndex = meshGroup.size();
-                testViewRed->color = /*Color::red*/Color::getRandomColor();
+                auto cInd = meshGroup.size() % Color::totalColors;
+                testViewRed->color = Color::colrArr[cInd];;
                 auto redtMatrix = glm::translate(glm::mat4(1), testViewRed->rOrigin) * glm::rotate(glm::mat4(1), glm::radians(testViewRed->dstTh), GLUtility::Y_AXIS) * glm::translate(glm::mat4(1), -testViewRed->rOrigin) * (*testViewRed->parentMat.get());
                 auto redVert0 = glm::vec3(redtMatrix * glm::vec4(verts[0], 1));
                 auto redVert1 = glm::vec3(redtMatrix * glm::vec4(verts[1], 1));
@@ -699,7 +700,8 @@ void updateFrame()
                 testViewGreen->rOrigin = glm::vec3(tMatrix * glm::vec4(verts[1], 1));
                 testViewGreen->srcTh = 0;
                 testViewGreen->dstTh = 60;
-                testViewGreen->color = Color::getRandomColor();// Color::green;
+                auto cInd = meshGroup.size() % Color::totalColors;
+                testViewGreen->color = Color::colrArr[cInd];// Color::green;
                 testViewGreen->mIndex = meshGroup.size();
                 auto greentMatrix = glm::translate(glm::mat4(1), testViewGreen->rOrigin) * glm::rotate(glm::mat4(1), glm::radians(testViewGreen->dstTh), GLUtility::Y_AXIS) * glm::translate(glm::mat4(1), -testViewGreen->rOrigin) * (*testViewGreen->parentMat.get());
                 auto greenVert1 = glm::vec3(greentMatrix * glm::vec4(verts[1], 1));
@@ -746,7 +748,8 @@ void updateFrame()
                 testViewBlue->rOrigin = glm::vec3(tMatrix * glm::vec4(verts[2], 1));
                 testViewBlue->srcTh = 0;
                 testViewBlue->dstTh = 60;
-                testViewBlue->color = Color::getRandomColor();// Color::blue;
+                auto cInd = meshGroup.size() % Color::totalColors;
+                testViewBlue->color = Color::colrArr[cInd];// Color::blue;
                 testViewBlue->mIndex = meshGroup.size();
                 auto bluetMatrix = glm::translate(glm::mat4(1), testViewBlue->rOrigin) * glm::rotate(glm::mat4(1), glm::radians(testViewBlue->dstTh), GLUtility::Y_AXIS) * glm::translate(glm::mat4(1), -testViewBlue->rOrigin) * (*testViewBlue->parentMat.get());
                 auto blueVert0 = glm::vec3(bluetMatrix * glm::vec4(verts[0], 1));
@@ -841,6 +844,7 @@ void renderFrame()
         dirLightProgram->bindAllUniforms();
         obj->draw();
     }
+   
     glBindVertexArray(rootMesh->vao);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, rootMesh->ibo);
     for (const auto& obj : meshGroup)
@@ -917,7 +921,7 @@ void renderImgui()
 
     {
         ImGui::Begin("Light params");
-        ImGui::SliderFloat3("Position", &light.position[0], -5, 5);
+        ImGui::SliderFloat3("Position", &light.position[0], 0, 15);
         ImGui::SliderFloat3("Ambient", &light.ambient[0], 0, 1);
         ImGui::SliderFloat3("Diffuse", &light.diffuse[0], 0, 1);
         
@@ -1174,6 +1178,17 @@ std::shared_ptr<ObjContainer> loadObjModel(std::string filePath,std::string defa
 
 #pragma endregion
 
+/*
+* TODO:
+* The approach used in this demo is not scalable.
+* With increase in number of triangles needed to be draw, fps is
+* dropping significanlty.
+* 
+* One possible approach to incrase the fps is to use instanced rendering along
+* with individual triangles being animated.
+* Each instance will have it's matrix and color.
+* 
+*/
 
 int main()
 {
