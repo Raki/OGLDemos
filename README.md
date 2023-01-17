@@ -42,6 +42,9 @@ Open visual studio solution and run
 
 ![heightmap](https://user-images.githubusercontent.com/824691/211948333-8c4f32d9-391d-43b2-ad18-8bbec90f8596.png)
 
+* Dynamic Tiling
+
+![dynamic tiling](https://user-images.githubusercontent.com/824691/212783723-3e56d1f4-76ef-4f6e-84a1-f9c21eebb0f9.gif)
 
 
 
