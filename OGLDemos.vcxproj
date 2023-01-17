@@ -19,7 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="AnimatedTilesTest.cpp" />
+    <ClCompile Include="AnimatedTilesVColor.cpp" />
     <ClCompile Include="imgui-1.88\backends\imgui_impl_glfw.cpp" />
     <ClCompile Include="imgui-1.88\backends\imgui_impl_opengl3.cpp" />
     <ClCompile Include="imgui-1.88\imgui.cpp" />
@@ -51,6 +51,8 @@
     <None Include="shaders\fBasic.glsl" />
     <None Include="shaders\fHeightMap.glsl" />
     <None Include="shaders\fMatSpotLight.glsl" />
+    <None Include="shaders\fSpotLight.glsl" />
+    <None Include="shaders\fSpotLight_vColor.glsl" />
     <None Include="shaders\geometryShaderBasic.glsl" />
     <None Include="shaders\gs\fMatSpotLight.glsl" />
     <None Include="shaders\gs\fNorm.glsl" />
@@ -61,6 +63,7 @@
     <None Include="shaders\vBasic.glsl" />
     <None Include="shaders\vHeightMap.glsl" />
     <None Include="shaders\vMatSpotLight.glsl" />
+    <None Include="shaders\vSpotLight_vColor.glsl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

@@ -533,49 +533,8 @@ void updateFrame()
     auto theta = (int)t % 360;
     
     tLength = glm::radians((float)t);
-    //scenObjects.at(2)->tMatrix = glm::translate(glm::mat4(1), glm::vec3(bluePos[0], bluePos[1], bluePos[2]));
-    //scenObjects.at(1)->tMatrix = glm::translate(glm::mat4(1), glm::vec3(orangePos[0], orangePos[1], orangePos[2]));
-    //light.position.x = sin(glm::radians((float)t))*5;
-    //camera->orbitY(glm::radians(gRotation));
     
     lBox->tMatrix = glm::translate(glm::mat4(1), light.position);
-
-
-    if (testFlag)
-    {
-        int asd = 0;
-        asd += 1;
-        testFlag = false;
-        auto normal = GLUtility::getNormal(verts[0], verts[1], verts[2]);
-        normal = glm::normalize(normal);
-        auto rootView = queue.at(0);
-        auto tMatrix = glm::translate(glm::mat4(1), rootView->rOrigin) * glm::rotate(glm::mat4(1), glm::radians(rootView->srcTh), GLUtility::Y_AXIS) * glm::translate(glm::mat4(1), -rootView->rOrigin);
-        std::vector<GLUtility::VDPosNormColr> vData;
-        
-        //for (size_t i = 0; i < 3; i++)
-           // vData.push_back({ glm::vec3(tMatrix * glm::vec4(verts[i],1)),normal,Color::green });
-        for (float th = 360; th > 0; th -= 60)
-        {
-            float x = 2 * cos(glm::radians(th));
-            float z = 2 * sin(glm::radians(th));
-            auto pos = glm::vec3(x, 0, z);
-            vData.push_back({ glm::vec3(tMatrix * glm::vec4(pos,1)),normal,Color::green });
-        }
-
-        std::vector<unsigned int> iData{ 0,1,2,3,4,5 };
-        majorMesh->drawCount = iData.size();
-        glBindVertexArray(majorMesh->vao);
-        glBindBuffer(GL_ARRAY_BUFFER, majorMesh->vbo);
-        glBufferData(GL_ARRAY_BUFFER, vData.size() * sizeof(VDPosNormColr), nullptr, GL_STREAM_DRAW);
-        glBufferData(GL_ARRAY_BUFFER, vData.size() * sizeof(VDPosNormColr), vData.data(), GL_STREAM_DRAW);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, majorMesh->ibo);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, iData.size() * sizeof(GL_UNSIGNED_INT), nullptr, GL_STREAM_DRAW);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, iData.size() * sizeof(GL_UNSIGNED_INT), iData.data(), GL_STREAM_DRAW);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
-    }
 
     if(startAnim)
     if (animQueue.size() > 0)
@@ -589,7 +548,7 @@ void updateFrame()
         {
             auto obj = meshGroup.at(animQueue.at(0).index);
             obj->visible = false;
-            auto tMatrix = glm::translate(glm::mat4(1), obj->rOrigin) * glm::rotate(glm::mat4(1), glm::radians(obj->srcTh), GLUtility::Y_AXIS) * glm::translate(glm::mat4(1), -obj->rOrigin);
+            auto tMatrix = glm::translate(glm::mat4(1), obj->rOrigin) * glm::rotate(glm::mat4(1), glm::radians(obj->srcTh), GLUtility::Y_AXIS) * glm::translate(glm::mat4(1), -obj->rOrigin) * (*obj->parentMat.get());
             auto rVert0 = glm::vec3(tMatrix * glm::vec4(verts[0], 1));
             auto rVert1 = glm::vec3(tMatrix * glm::vec4(verts[1], 1));
             auto rVert2 = glm::vec3(tMatrix * glm::vec4(verts[2], 1));
@@ -608,7 +567,6 @@ void updateFrame()
             
             majorMesh->drawCount = iData.size();
 
-            glBindVertexArray(majorMesh->vao);
             glBindBuffer(GL_ARRAY_BUFFER, majorMesh->vbo);
             glBufferData(GL_ARRAY_BUFFER, vData.size() * sizeof(VDPosNormColr), nullptr, GL_STREAM_DRAW);
             glBufferData(GL_ARRAY_BUFFER, vData.size() * sizeof(VDPosNormColr), vData.data(), GL_STREAM_DRAW);
@@ -618,7 +576,6 @@ void updateFrame()
             glBufferData(GL_ELEMENT_ARRAY_BUFFER, iData.size() * sizeof(GL_UNSIGNED_INT), nullptr, GL_STREAM_DRAW);
             glBufferData(GL_ELEMENT_ARRAY_BUFFER, iData.size() * sizeof(GL_UNSIGNED_INT), iData.data(), GL_STREAM_DRAW);
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-            glBindVertexArray(0);
 
             animQueue.erase(animQueue.begin());
         }
@@ -789,14 +746,6 @@ void updateFrame()
         }
     }
 
-    //for (auto &obj: meshGroup)
-    //{
-    //    if (obj.srcTh < obj.dstTh)
-    //    {
-    //        obj.srcTh += obj.speed;
-    //        //obj.tMat = glm::rotate(glm::mat4(1), glm::radians(obj.srcTh+= 1), GLUtility::Y_AXIS);
-    //    }
-    //}
 }
 
 void renderFrame()
@@ -1215,21 +1164,7 @@ std::shared_ptr<ObjContainer> loadObjModel(std::string filePath,std::string defa
 }
 
 
-
-
 #pragma endregion
-
-/*
-* TODO:
-* The approach used in this demo is not scalable.
-* With increase in number of triangles needed to be draw, fps is
-* dropping significanlty.
-* 
-* One possible approach to incrase the fps is to use instanced rendering along
-* with individual triangles being animated.
-* Each instance will have it's matrix and color.
-* 
-*/
 
 int main()
 {
