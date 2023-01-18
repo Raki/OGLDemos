@@ -63,17 +63,19 @@ struct CheapMap
 {
     std::vector<glm::vec3> entries;
     std::vector<size_t> counts;
-    void push(glm::vec3 v)
+    size_t push(glm::vec3 v)
     {
         auto ec = entryCount(v);
         if (ec== std::numeric_limits<size_t>::max())
         {
             entries.push_back(v);
             counts.push_back(0);
+            return 0;
         }
         else
         {
             counts.at(ec) += 1;
+            return counts.at(ec);
         }
     }
 
@@ -108,7 +110,7 @@ struct AnimEntity
 
 GLFWwindow* window;
 auto closeWindow = false;
-auto startAnim = false;
+auto startAnim = true;
 auto testFlag = false;
 
 
@@ -199,6 +201,22 @@ glm::vec3 roundTo4(glm::vec3 v)
     resV.z = (float)resV.z / 10000;
 
     return resV;
+}
+void createOrUpdateBox(glm::vec3 pos,size_t cCount)
+{
+    if (cCount == 0)
+    {
+        auto lBox = GLUtility::getCubeVec3(0.2f, 0.2f, 0.2f);
+        lBox->color = glm::vec4(0.1, 0.1, 0.1, 1);
+        lBox->tMatrix = glm::translate(glm::mat4(1), pos);
+        defaultMatObjs.push_back(lBox);
+    }
+    else
+    {
+        auto index = cheapMap.entryCount(roundTo4(pos));
+        if (index < defaultMatObjs.size())
+            defaultMatObjs.at(index + 1)->color = glm::vec4(cCount * 0.1, cCount * 0.1, (cCount==9)?0:cCount * 0.1, 1);
+    }
 }
 static void error_callback(int error, const char* description)
 {
@@ -582,10 +600,10 @@ void updateFrame()
     }
     else
     {
-        static size_t cnt = 0;
+        static size_t cnt = 0,ptCnt=0;
         if(queue.size() > 0/*&& cnt<50*/)
         {
-            if (cnt == 25)
+            if (cnt == 19)
                 cnt += 0;
             cnt += 1;
             auto rootView = queue.at(0);
@@ -593,6 +611,10 @@ void updateFrame()
             auto rVert0 = glm::vec3(tMatrix* glm::vec4(verts[0], 1));
             auto rVert1 = glm::vec3(tMatrix* glm::vec4(verts[1], 1));
             auto rVert2 = glm::vec3(tMatrix* glm::vec4(verts[2], 1));
+
+            auto tc0 = cheapMap.getCount(roundTo4(rVert0));
+            auto tc1 = cheapMap.getCount(roundTo4(rVert1));
+            auto tc2 = cheapMap.getCount(roundTo4(rVert2));
             queue.erase(queue.begin());
 
             meshGroup.push_back(rootView);
@@ -621,23 +643,23 @@ void updateFrame()
                 //side 2 of rootView
                 rootView->v0Grp.push_back(glm::ivec2(meshGroup.size() - 1,1));
                 rootView->v2Grp.push_back(glm::ivec2(meshGroup.size() - 1,1));
-                cheapMap.push(roundTo4(rVert0));
-                cheapMap.push(roundTo4(rVert2));
                 
-                if (rootView->v0Grp.size() >= 5)
-                    rootView->vert0 = true;
-                if (rootView->v2Grp.size() >= 5)
-                    rootView->vert2 = true;
+                auto cCount = cheapMap.push(roundTo4(rVert0));
+                createOrUpdateBox(rVert0, cCount);
+                cCount = cheapMap.push(roundTo4(rVert2));
+                createOrUpdateBox(rVert2, cCount);
+                
+                
 
                 //side 1 of testViewRed
                 testViewRed->v0Grp.push_back(glm::ivec2(rootView->mIndex, 2));
                 testViewRed->v1Grp.push_back(glm::ivec2(rootView->mIndex, 2));
-                cheapMap.push(roundTo4(redVert0));
-                cheapMap.push(roundTo4(redVert1));
-                if (testViewRed->v0Grp.size() >= 5)
-                    testViewRed->vert0 = true;
-                if (testViewRed->v1Grp.size() >= 5)
-                    testViewRed->vert1 = true;
+                
+                cCount = cheapMap.push(roundTo4(redVert0));
+                createOrUpdateBox(redVert0, cCount);
+                cCount = cheapMap.push(roundTo4(redVert1));
+                createOrUpdateBox(redVert1, cCount);
+                
 
                 AnimEntity aeRed;
                 aeRed.srcTh = 0;
@@ -670,22 +692,20 @@ void updateFrame()
                 //side 0 of rootView
                 rootView->v0Grp.push_back(glm::ivec2(meshGroup.size() - 1, 1));
                 rootView->v1Grp.push_back(glm::ivec2(meshGroup.size() - 1, 1));
-                cheapMap.push(roundTo4(rVert0));
-                cheapMap.push(roundTo4(rVert1));
-                if (rootView->v0Grp.size() >= 5)
-                    rootView->vert0 = true;
-                if (rootView->v1Grp.size() >= 5)
-                    rootView->vert1 = true;
+                auto cCount = cheapMap.push(roundTo4(rVert0));
+                createOrUpdateBox(rVert0, cCount);
+                cCount = cheapMap.push(roundTo4(rVert1));
+                createOrUpdateBox(rVert1, cCount);
+                
 
                 //side 1 of testViewGreen
                 testViewGreen->v1Grp.push_back(glm::ivec2(rootView->mIndex, 0));
                 testViewGreen->v2Grp.push_back(glm::ivec2(rootView->mIndex, 0));
-                cheapMap.push(roundTo4(greenVert1));
-                cheapMap.push(roundTo4(greenVert2));
-                if (testViewGreen->v1Grp.size() >= 5)
-                    testViewGreen->vert1 = true;
-                if (testViewGreen->v2Grp.size() >= 5)
-                    testViewGreen->vert2 = true;
+                cCount = cheapMap.push(roundTo4(greenVert1));
+                createOrUpdateBox(greenVert1, cCount);
+                cCount = cheapMap.push(roundTo4(greenVert2));
+                createOrUpdateBox(greenVert2, cCount);
+                
 
                 AnimEntity aeGreen;
                 aeGreen.srcTh = 0;
@@ -718,22 +738,21 @@ void updateFrame()
                 //side 1 of rootView
                 rootView->v1Grp.push_back(glm::ivec2(meshGroup.size() - 1, 2));
                 rootView->v2Grp.push_back(glm::ivec2(meshGroup.size() - 1, 2));
-                cheapMap.push(roundTo4(rVert1));
-                cheapMap.push(roundTo4(rVert2));
-                if (rootView->v1Grp.size() >= 5)
-                    rootView->vert1 = true;
-                if (rootView->v2Grp.size() >= 5)
-                    rootView->vert2 = true;
+
+                auto cCount = cheapMap.push(roundTo4(rVert1));
+                createOrUpdateBox(rVert1, cCount);
+                cCount = cheapMap.push(roundTo4(rVert2));
+                createOrUpdateBox(rVert2, cCount);
+                
 
                 //side 2 of testViewBlue
                 testViewBlue->v0Grp.push_back(glm::ivec2(rootView->mIndex, 1));
                 testViewBlue->v2Grp.push_back(glm::ivec2(rootView->mIndex, 1));
-                cheapMap.push(roundTo4(blueVert0));
-                cheapMap.push(roundTo4(blueVert2));
-                if (testViewBlue->v0Grp.size() >= 5)
-                    testViewBlue->vert0 = true;
-                if (testViewBlue->v2Grp.size() >= 5)
-                    testViewBlue->vert2 = true;
+                cCount = cheapMap.push(roundTo4(blueVert0));
+                createOrUpdateBox(blueVert0, cCount);
+                cCount = cheapMap.push(roundTo4(blueVert2));
+                createOrUpdateBox(blueVert2, cCount);
+                
 
 
                 AnimEntity aeBlue;

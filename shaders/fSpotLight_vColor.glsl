@@ -51,7 +51,7 @@ void main()
 
 		//ambient
 		vec3 ambient = light.ambient*color_out;//vec3(texture(material.diffuseSampler,uv_out));
-		ambient*=attenuation;
+		//ambient*=attenuation;
 
 		//diffuse
 		vec3 norm = normalize(normal_out);
