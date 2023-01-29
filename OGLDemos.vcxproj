@@ -19,7 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="AnimatedTilesTest.cpp" />
+    <ClCompile Include="CubemapDemo.cpp" />
     <ClCompile Include="imgui-1.88\backends\imgui_impl_glfw.cpp" />
     <ClCompile Include="imgui-1.88\backends\imgui_impl_opengl3.cpp" />
     <ClCompile Include="imgui-1.88\imgui.cpp" />
@@ -61,6 +61,7 @@
     <None Include="shaders\gs\vMatSpotLight.glsl" />
     <None Include="shaders\gs\vNorm.glsl" />
     <None Include="shaders\vBasic.glsl" />
+    <None Include="shaders\vCubemap.glsl" />
     <None Include="shaders\vHeightMap.glsl" />
     <None Include="shaders\vMatSpotLight.glsl" />
     <None Include="shaders\vSpotLight_vColor.glsl" />
