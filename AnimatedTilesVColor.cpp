@@ -69,8 +69,8 @@ struct CheapMap
         if (ec== std::numeric_limits<size_t>::max())
         {
             entries.push_back(v);
-            counts.push_back(0);
-            return 0;
+            counts.push_back(1);
+            return 1;
         }
         else
         {
@@ -204,7 +204,7 @@ glm::vec3 roundTo4(glm::vec3 v)
 }
 void createOrUpdateBox(glm::vec3 pos,size_t cCount)
 {
-    if (cCount == 0)
+    if (cCount == 1)
     {
         auto lBox = GLUtility::getCubeVec3(0.2f, 0.2f, 0.2f);
         lBox->color = glm::vec4(0.1, 0.1, 0.1, 1);
@@ -215,7 +215,7 @@ void createOrUpdateBox(glm::vec3 pos,size_t cCount)
     {
         auto index = cheapMap.entryCount(roundTo4(pos));
         if (index < defaultMatObjs.size())
-            defaultMatObjs.at(index + 1)->color = glm::vec4(cCount * 0.1, cCount * 0.1, (cCount==9)?0:cCount * 0.1, 1);
+            defaultMatObjs.at(index + 1)->color = glm::vec4(cCount * 0.1, cCount * 0.1, (cCount==10)?0:cCount * 0.1, 1);
     }
 }
 static void error_callback(int error, const char* description)
@@ -620,8 +620,8 @@ void updateFrame()
             meshGroup.push_back(rootView);
 
             if (!rootView->vert0
-                && cheapMap.getCount(roundTo4(rVert0)) < 9
-                && cheapMap.getCount(roundTo4(rVert2)) < 9)
+                && cheapMap.getCount(roundTo4(rVert0)) < 10
+                && cheapMap.getCount(roundTo4(rVert2)) < 10)
             {
                 rootView->vert0 = true;
                 auto testViewRed=std::make_shared<MeshView>();
@@ -670,8 +670,8 @@ void updateFrame()
             }
 
             if (!rootView->vert1 
-                && cheapMap.getCount(roundTo4(rVert0)) < 9
-                && cheapMap.getCount(roundTo4(rVert1)) < 9)
+                && cheapMap.getCount(roundTo4(rVert0)) < 10
+                && cheapMap.getCount(roundTo4(rVert1)) < 10)
             {
                 rootView->vert1 = true;
                 auto testViewGreen=std::make_shared<MeshView>();
@@ -716,8 +716,8 @@ void updateFrame()
             }
 
             if (!rootView->vert2 
-                && cheapMap.getCount(roundTo4(rVert2)) < 9
-                && cheapMap.getCount(roundTo4(rVert1)) < 9)
+                && cheapMap.getCount(roundTo4(rVert2)) < 10
+                && cheapMap.getCount(roundTo4(rVert1)) < 10)
             {
                 rootView->vert2 = true;
                 auto testViewBlue = std::make_shared<MeshView>();
