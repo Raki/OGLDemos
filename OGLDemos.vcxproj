@@ -19,7 +19,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="CubemapDemo.cpp" />
     <ClCompile Include="imgui-1.88\backends\imgui_impl_glfw.cpp" />
     <ClCompile Include="imgui-1.88\backends\imgui_impl_opengl3.cpp" />
     <ClCompile Include="imgui-1.88\imgui.cpp" />
@@ -27,6 +26,7 @@
     <ClCompile Include="imgui-1.88\imgui_draw.cpp" />
     <ClCompile Include="imgui-1.88\imgui_tables.cpp" />
     <ClCompile Include="imgui-1.88\imgui_widgets.cpp" />
+    <ClCompile Include="Lights.cpp" />
     <ClCompile Include="utils\Camera.cpp" />
     <ClCompile Include="utils\Colors.cpp" />
     <ClCompile Include="utils\GLMaterial.cpp" />
@@ -50,6 +50,7 @@
   <ItemGroup>
     <None Include="shaders\fBasic.glsl" />
     <None Include="shaders\fHeightMap.glsl" />
+    <None Include="shaders\fLights.glsl" />
     <None Include="shaders\fMatSpotLight.glsl" />
     <None Include="shaders\fSpotLight.glsl" />
     <None Include="shaders\fSpotLight_vColor.glsl" />
@@ -63,6 +64,7 @@
     <None Include="shaders\vBasic.glsl" />
     <None Include="shaders\vCubemap.glsl" />
     <None Include="shaders\vHeightMap.glsl" />
+    <None Include="shaders\vLights.glsl" />
     <None Include="shaders\vMatSpotLight.glsl" />
     <None Include="shaders\vSpotLight_vColor.glsl" />
   </ItemGroup>

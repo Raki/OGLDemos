@@ -366,6 +366,17 @@ void GlslProgram::bindInt(string name, int val)
 	glUniform1i(uniformLocations[name], val);
 }
 
+void GlslProgram::activeSubrountine(string name,GLenum shaderType)
+{
+	if (subroutineLocations.find(name) == subroutineLocations.end())
+	{
+		auto loc = glGetSubroutineIndex(programID, shaderType, name.c_str());
+		subroutineLocations[name] = loc;
+	}
+	
+	glUniformSubroutinesuiv(shaderType, 1, &subroutineLocations[name]);
+}
+
 void GlslProgram::bindAllUniforms()
 {
 	for (auto itr : vec2Map)

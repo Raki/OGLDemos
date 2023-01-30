@@ -19,6 +19,7 @@ class GlslProgram
 	map<string, float> floatMap;
 	map<string, int> intMap;
 	map<string, GLint> uniformLocations;
+	map<string, GLuint> subroutineLocations;
 	
 	GLuint vShaderID;
 	GLuint fShaderID;
@@ -47,6 +48,7 @@ public:
     void bindFloat(string name, float val);
     void setInt(string name, int val);
     void bindInt(string name, int val);
+	void activeSubrountine(string name, GLenum shaderType);
 	void bindAllUniforms();
 
 	~GlslProgram();

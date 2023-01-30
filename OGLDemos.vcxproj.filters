@@ -63,7 +63,7 @@
     <ClCompile Include="imgui-1.88\imgui_tables.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
-    <ClCompile Include="CubemapDemo.cpp">
+    <ClCompile Include="Lights.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
@@ -149,6 +149,12 @@
       <Filter>shaders</Filter>
     </None>
     <None Include="shaders\vCubemap.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\fLights.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\vLights.glsl">
       <Filter>shaders</Filter>
     </None>
   </ItemGroup>
