@@ -12,6 +12,23 @@ namespace Utility
         buffer << t.rdbuf();
         return buffer.str();
     }
+
+    string replaceStrWith(const std::string srcStr, const std::string dstStr, std::string_view root)
+    {
+        std::string res = "";
+        if (root.length() == 0)
+            return res;
+
+        auto pos = root.find(srcStr);
+        if (pos != std::string::npos)
+        {
+            auto p1 = root.substr(0, pos );
+            auto p2 = root.substr(pos+srcStr.length(), root.length()- pos + srcStr.length());
+            res = std::string(p1) + dstStr + std::string(p2);
+        }
+
+        return res;
+    }
     
     void savePngFile(std::string filename,int w, int h, int comp, unsigned char *data)
     {

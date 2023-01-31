@@ -504,6 +504,213 @@ namespace GLUtility
 		return cubeMesh;
 	}
 
+	void fillCube(float width, float height, float depth,glm::vec3 color,glm::mat4 tMat, vector<VDPosNormColr>& vData, vector<unsigned int>& iData)
+	{
+		bool hasTex = true;
+		glm::vec3 bbMin, bbMax;
+		bbMax.x = width / 2;
+		bbMax.y = height / 2;
+		bbMax.z = depth / 2;
+		bbMin.x = -width / 2;
+		bbMin.y = -height / 2;
+		bbMin.z = -depth / 2;
+
+
+		vector<glm::vec3> vArr, nArr;
+		vector<glm::vec2> uvArr;
+
+		//top
+		glm::vec3 t1 = glm::vec3(bbMin.x, bbMax.y, bbMin.z);
+		glm::vec3 t2 = glm::vec3(bbMax.x, bbMax.y, bbMin.z);
+		glm::vec3 t3 = glm::vec3(bbMax.x, bbMax.y, bbMax.z);
+		glm::vec3 t4 = glm::vec3(bbMin.x, bbMax.y, bbMax.z);
+
+		//bottom
+		glm::vec3 b1 = glm::vec3(bbMin.x, bbMin.y, bbMin.z);
+		glm::vec3 b2 = glm::vec3(bbMax.x, bbMin.y, bbMin.z);
+		glm::vec3 b3 = glm::vec3(bbMax.x, bbMin.y, bbMax.z);
+		glm::vec3 b4 = glm::vec3(bbMin.x, bbMin.y, bbMax.z);
+
+		// front			back
+		//		t4--t3			t2--t1
+		//		|    |			|	|
+		//		b4--b3			b2--b1
+		// left			right
+		//		t1--t4			t3--t2
+		//		|    |			|	|
+		//		b1--b4			b3--b2
+		// top			bottom
+		//		t1--t2			b4--b3
+		//		|    |			|	|
+		//		t4--t3			b1--b2
+		//front
+		vArr.push_back(b4);		vArr.push_back(b3);		vArr.push_back(t3);
+		vArr.push_back(b4);		vArr.push_back(t3);		vArr.push_back(t4);
+		{
+			auto n = getNormal(b4, b3, t3);
+			nArr.push_back(n);
+			nArr.push_back(n);
+			nArr.push_back(n);
+			nArr.push_back(n);
+			nArr.push_back(n);
+			nArr.push_back(n);
+			if (hasTex)
+			{
+				uvArr.push_back(glm::vec2(0, 0));
+				uvArr.push_back(glm::vec2(1, 0));
+				uvArr.push_back(glm::vec2(1, 1));
+				uvArr.push_back(glm::vec2(0, 0));
+				uvArr.push_back(glm::vec2(1, 1));
+				uvArr.push_back(glm::vec2(0, 1));
+			}
+			else
+			{
+				for (auto i = 0; i < 6; i++)uvArr.push_back(glm::vec2(-1, -1));
+			}
+		}
+
+
+		//back
+		vArr.push_back(b2);		vArr.push_back(b1);		vArr.push_back(t1);
+		vArr.push_back(b2);		vArr.push_back(t1);		vArr.push_back(t2);
+		{
+			auto n = getNormal(b2, b1, t1);
+			nArr.push_back(n);
+			nArr.push_back(n);
+			nArr.push_back(n);
+			nArr.push_back(n);
+			nArr.push_back(n);
+			nArr.push_back(n);
+			if (hasTex)
+			{
+				uvArr.push_back(glm::vec2(0, 0));
+				uvArr.push_back(glm::vec2(1, 0));
+				uvArr.push_back(glm::vec2(1, 1));
+				uvArr.push_back(glm::vec2(0, 0));
+				uvArr.push_back(glm::vec2(1, 1));
+				uvArr.push_back(glm::vec2(0, 1));
+			}
+			else
+			{
+				for (auto i = 0; i < 6; i++)uvArr.push_back(glm::vec2(-1, -1));
+			}
+		}
+
+		//left
+		vArr.push_back(b1);		vArr.push_back(b4);		vArr.push_back(t4);
+		vArr.push_back(b1);		vArr.push_back(t4);		vArr.push_back(t1);
+		{
+			auto n = getNormal(b1, b4, t4);
+			nArr.push_back(n);
+			nArr.push_back(n);
+			nArr.push_back(n);
+			nArr.push_back(n);
+			nArr.push_back(n);
+			nArr.push_back(n);
+			if (hasTex)
+			{
+				uvArr.push_back(glm::vec2(0, 0));
+				uvArr.push_back(glm::vec2(1, 0));
+				uvArr.push_back(glm::vec2(1, 1));
+				uvArr.push_back(glm::vec2(0, 0));
+				uvArr.push_back(glm::vec2(1, 1));
+				uvArr.push_back(glm::vec2(0, 1));
+			}
+			else
+			{
+				for (auto i = 0; i < 6; i++)uvArr.push_back(glm::vec2(-1, -1));
+			}
+		}
+
+		//right
+		vArr.push_back(b3);		vArr.push_back(b2);		vArr.push_back(t2);
+		vArr.push_back(b3);		vArr.push_back(t2);		vArr.push_back(t3);
+		{
+			auto n = getNormal(b3, b2, t2);
+			nArr.push_back(n);
+			nArr.push_back(n);
+			nArr.push_back(n);
+			nArr.push_back(n);
+			nArr.push_back(n);
+			nArr.push_back(n);
+			if (hasTex)
+			{
+				uvArr.push_back(glm::vec2(0, 0));
+				uvArr.push_back(glm::vec2(1, 0));
+				uvArr.push_back(glm::vec2(1, 1));
+				uvArr.push_back(glm::vec2(0, 0));
+				uvArr.push_back(glm::vec2(1, 1));
+				uvArr.push_back(glm::vec2(0, 1));
+			}
+			else
+			{
+				for (auto i = 0; i < 6; i++)uvArr.push_back(glm::vec2(-1, -1));
+			}
+		}
+
+		//top
+		vArr.push_back(t4);		vArr.push_back(t3);		vArr.push_back(t2);
+		vArr.push_back(t4);		vArr.push_back(t2);		vArr.push_back(t1);
+		{
+			auto n = getNormal(t4, t3, t2);
+			nArr.push_back(n);
+			nArr.push_back(n);
+			nArr.push_back(n);
+			nArr.push_back(n);
+			nArr.push_back(n);
+			nArr.push_back(n);
+			if (hasTex)
+			{
+				uvArr.push_back(glm::vec2(0, 0));
+				uvArr.push_back(glm::vec2(1, 0));
+				uvArr.push_back(glm::vec2(1, 1));
+				uvArr.push_back(glm::vec2(0, 0));
+				uvArr.push_back(glm::vec2(1, 1));
+				uvArr.push_back(glm::vec2(0, 1));
+			}
+			else
+			{
+				for (auto i = 0; i < 6; i++)uvArr.push_back(glm::vec2(-1, -1));
+			}
+		}
+
+		//bottom
+		vArr.push_back(b1);		vArr.push_back(b2);		vArr.push_back(b3);
+		vArr.push_back(b1);		vArr.push_back(b3);		vArr.push_back(b4);
+		{
+			auto n = getNormal(b1, b2, b3);
+			nArr.push_back(n);
+			nArr.push_back(n);
+			nArr.push_back(n);
+			nArr.push_back(n);
+			nArr.push_back(n);
+			nArr.push_back(n);
+			if (hasTex)
+			{
+				uvArr.push_back(glm::vec2(0, 0));
+				uvArr.push_back(glm::vec2(1, 0));
+				uvArr.push_back(glm::vec2(1, 1));
+				uvArr.push_back(glm::vec2(0, 0));
+				uvArr.push_back(glm::vec2(1, 1));
+				uvArr.push_back(glm::vec2(0, 1));
+			}
+			else
+			{
+				for (auto i = 0; i < 6; i++)uvArr.push_back(glm::vec2(-1, -1));
+			}
+		}
+
+		auto totalVerts = vArr.size();
+		for (auto i = 0; i < totalVerts; i++)
+		{
+			auto v = glm::vec3(tMat*glm::vec4(vArr.at(i),1.0f));
+			auto n = nArr.at(i);
+			auto uv = uvArr.at(i);
+			vData.push_back({ v,n,color });
+			iData.push_back((unsigned int)iData.size());
+		}
+	}
+
 	std::shared_ptr<Mesh> getCubeVec3(float width, float height, float depth)
 	{
 		bool hasTex = true;

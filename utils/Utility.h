@@ -10,6 +10,7 @@ namespace Utility
 	};
 	string readFileContents(string filePath);
 
+	string replaceStrWith(const std::string srcStr,const std::string dstStr, std::string_view root);
 
 	void savePngFile(std::string filename, int w, int h, int comp, unsigned char* data);
 
