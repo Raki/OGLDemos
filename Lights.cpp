@@ -50,14 +50,16 @@ auto capturePos = false;
 
 std::shared_ptr<Camera> camera;
 float fov=45;
-glm::mat4 projectionMat = glm::perspective(fov, (float)WIN_WIDTH / (float)WIN_HEIGHT, 0.1f, 100.0f);
+const float zNear=0.1f;
+const float zFar=1000.0f;
+glm::mat4 projectionMat = glm::perspective(fov, (float)WIN_WIDTH / (float)WIN_HEIGHT, zNear,zFar);
 glm::mat4 globalModelMat = glm::mat4(1);
 
 
 
 std::shared_ptr<GlslProgram> basicProgram, dirLightProgram,cMapProgram;
 std::vector<std::shared_ptr<Mesh>> defaultMatObjs,diffuseMatObjs;
-std::shared_ptr<Mesh> lBox,skyBox;
+std::shared_ptr<Mesh> lBox,skyBox,groupObj;
 std::shared_ptr<FrameBuffer> layer1;
 std::shared_ptr<Texture2D> diffuseTex, specularTex;
 glm::vec3 lightPosition = glm::vec3(5, 6, 0);
@@ -93,6 +95,9 @@ glm::mat4 uvRotMat = glm::mat4(1);
 
 float gRotation = 90;
 float tLength = 0.1;
+float camSpeed = 0.1;
+const int rows = 500;
+const int cols = 500;
 
 #pragma endregion 
 
@@ -136,37 +141,48 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
     {
         
     }
-    else if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS)
+    else if (key == GLFW_KEY_RIGHT
+        || key == GLFW_KEY_D/*&& action == GLFW_PRESS*/)
     {
-        
+        camera->eye.x += camSpeed;
+        camera->center.x += camSpeed;
+        camera->viewMat = glm::lookAt(camera->eye, camera->center, camera->up);
     }
-    else if (key == GLFW_KEY_LEFT && action == GLFW_PRESS)
+    else if (key == GLFW_KEY_LEFT
+        || key == GLFW_KEY_A/*&& action == GLFW_PRESS*/)
     {
-        
+        camera->eye.x -= camSpeed;
+        camera->center.x -= camSpeed;
+        camera->viewMat = glm::lookAt(camera->eye, camera->center, camera->up);
     }
-    else if (key == GLFW_KEY_UP /*&& action == GLFW_PRESS*/)
+    else if (key == GLFW_KEY_UP
+        || key == GLFW_KEY_W/*&& action == GLFW_PRESS*/)
     {
-        fov -= 0.05f;
-        projectionMat = glm::perspective(fov, (float)WIN_WIDTH / (float)WIN_HEIGHT, 0.1f, 100.0f);
-        
+        camera->eye.z -= camSpeed;
+        camera->center.z -= camSpeed;
+        camera->viewMat = glm::lookAt(camera->eye, camera->center, camera->up);
     }
-    else if (key == GLFW_KEY_DOWN /*&& action == GLFW_PRESS*/)
+    else if (key == GLFW_KEY_DOWN
+        || key == GLFW_KEY_S/*&& action == GLFW_PRESS*/)
     {
-        fov += 0.05f;
-        projectionMat = glm::perspective(fov, (float)WIN_WIDTH / (float)WIN_HEIGHT, 0.1f, 100.0f);
-        
+        camera->eye.z += camSpeed;
+        camera->center.z += camSpeed;
+        camera->viewMat = glm::lookAt(camera->eye, camera->center, camera->up);
     }
     else if (key == GLFW_KEY_Z /*&& action == GLFW_PRESS*/)
     {
-        fov -= 0.05f;
-        projectionMat = glm::perspective(fov, (float)WIN_WIDTH / (float)WIN_HEIGHT, 0.1f, 100.0f);
-        
+        camera->eye.y += camSpeed;
+        if ((mods == GLFW_MOD_CONTROL))
+            camera->center.y += camSpeed;
+        camera->viewMat = glm::lookAt(camera->eye, camera->center, camera->up);
     }
-    else if (key == GLFW_KEY_X /*&& action == GLFW_PRESS*/)
+    else if (key == GLFW_KEY_X/*&& action == GLFW_PRESS*/)
     {
-        fov += 0.05f;
-        projectionMat = glm::perspective(fov, (float)WIN_WIDTH / (float)WIN_HEIGHT, 0.1f, 100.0f);
-        
+        camera->eye.y -= camSpeed;
+        if ((mods == GLFW_MOD_CONTROL))
+            camera->center.y -= camSpeed;
+        camera->viewMat = glm::lookAt(camera->eye, camera->center, camera->up);
+
     }
     else if (key == GLFW_KEY_Q /*&& action == GLFW_PRESS*/)
     {
@@ -235,7 +251,11 @@ void initGL()
     glViewport(0, 0, WIN_WIDTH, WIN_HEIGHT);
     glClearColor(0.1f, 0.2f, 0.3f, 1.0f);
 
-    basicProgram = std::make_shared<GlslProgram>(Utility::readFileContents("shaders/vLights.glsl"), Utility::readFileContents("shaders/fLights.glsl"));
+    auto vsStr = Utility::readFileContents("shaders/vLights.glsl");
+    vsStr = Utility::replaceStrWith("#version 460", "#version 460 \n#define PER_VERTEX_COLOR",vsStr);
+    auto fsStr = Utility::readFileContents("shaders/fLights.glsl");
+    fsStr = Utility::replaceStrWith("#version 460", "#version 460 \n#define PER_VERTEX_COLOR", fsStr);
+    basicProgram = std::make_shared<GlslProgram>(vsStr, fsStr);
 
     assert(basicProgram->programID);
 
@@ -278,7 +298,7 @@ void initImgui()
 
 void setupCamera() {
 
-    auto eye = glm::vec3(0, 1, 10);
+    auto eye = glm::vec3(0, 50, 50);
     auto center = glm::vec3(0, 0, 0);
     auto up = glm::vec3(0, 1, 0);
     camera = std::make_shared<Camera>(eye,center,up);
@@ -289,7 +309,7 @@ void setupCamera() {
 void setupScene()
 {
     light.direction = glm::vec3(0, -1, -1);
-    light.position = glm::vec3(0, 3, 0);
+    light.position = glm::vec3(0, 5, 0);
     light.ambient = glm::vec3(0.2f);
     light.diffuse = glm::vec3(0.5f);
     light.specular = glm::vec3(1.0f, 1.0f, 1.0f);
@@ -312,23 +332,39 @@ void setupScene()
     box->pickColor = glm::vec4(1.0);
     box->color = glm::vec4(1.0);
 
-    auto xAxis = GLUtility::getCube(8, 0.1f, 0.1f);
-    xAxis->color = glm::vec4(Color::red,1.0f);
-    xAxis->tMatrix = glm::mat4(1);
+    std::vector<GLUtility::VDPosNormColr> vData;
+    std::vector<unsigned int> iData;
 
-    auto yAxis = GLUtility::getCube(0.1, 8.f, 0.1f);
-    yAxis->color = glm::vec4(Color::green, 1.0f);
-    yAxis->tMatrix = glm::mat4(1);
+    auto m = glm::mat4(1);
+    //x axis
+    GLUtility::fillCube(8, 0.1f, 0.1f, Color::red,m, vData, iData);
+    //y axis
+    GLUtility::fillCube(0.1, 8.f, 0.1f, Color::green,m, vData, iData);
+    //z axis
+    GLUtility::fillCube(0.1, 0.1f, 8.f, Color::blue,m, vData, iData);
 
-    auto zAxis = GLUtility::getCube(0.1, 0.1f, 8.f);
-    zAxis->color = glm::vec4(Color::blue, 1.0f);
-    zAxis->tMatrix = glm::mat4(1);
+
+    
+    
+    glm::vec3 origin = glm::vec3(-rows/2,0,-cols/2);
+    for (int row =0;row<rows;row++)
+    {
+        for (int col = 0; col < cols; col++)
+        {
+            int ind = (row * rows) + col;
+            float noise = (rand() % 100)/100.0f;
+            float h = 0.8f+(noise*2);
+            auto trans = glm::vec3(origin.x+(row),origin.y+(h/2), origin.z + (col));
+            auto tMat = glm::translate(glm::mat4(1),trans);
+            GLUtility::fillCube(0.8f,h,0.8, Color::colrArr[ind%Color::totalColors], tMat, vData, iData);
+        }
+    }
+
+
+    groupObj = std::make_shared<GLUtility::Mesh>(vData, iData);
     
     defaultMatObjs.push_back(lBox);
-    diffuseMatObjs.push_back(box);
-    diffuseMatObjs.push_back(xAxis);
-    diffuseMatObjs.push_back(yAxis);
-    diffuseMatObjs.push_back(zAxis);
+    //diffuseMatObjs.push_back(box);
 }
 
 
@@ -437,6 +473,17 @@ void renderFrame()
         obj->draw();
     }
 
+    {
+        basicProgram->activeSubrountine("getDiffuseColrVertex", GL_FRAGMENT_SHADER);
+        decltype(groupObj) obj = groupObj;
+        mv = obj->tMatrix * globalModelMat;
+        auto normlMat = glm::transpose(glm::inverse(mv));
+        basicProgram->setMat4f("model", mv);
+        basicProgram->setMat4f("nrmlMat", normlMat);
+        basicProgram->setVec3f("color", glm::vec3(obj->color));
+        basicProgram->bindAllUniforms();
+        obj->draw();
+    }
     basicProgram->unbind();
     
 
@@ -459,7 +506,7 @@ void renderImgui()
     ImGui::NewFrame();
 
     {
-        ImGui::Begin("Geometry Shader Demo");                     
+        ImGui::Begin("Lights Demo");                     
 
         ImGui::Text("Use UP & DOWN arrows for zoom-In&Out");
         ImGui::SliderFloat("Norm Distance", &tLength, 0, 1);
@@ -474,12 +521,11 @@ void renderImgui()
 
     {
         ImGui::Begin("Light params");
-        ImGui::SliderFloat3("Position", &light.position[0], -5, 5);
-        ImGui::SliderFloat3("Ambient", &light.ambient[0], 0, 1);
+        ImGui::SliderFloat3("Position", &light.position[0], - rows / 2.0f, cols / 2.0f);
         ImGui::SliderFloat3("Diffuse", &light.diffuse[0], 0, 1);
         
-        ImGui::SliderFloat("CutOff", &light.cutOff, 0, 90);
-        ImGui::SliderFloat("outerCutOff", &light.outerCutOff, 0, 90);
+        ImGui::SliderFloat("Cam speed", &camSpeed, 0, 5);
+        //ImGui::SliderFloat("outerCutOff", &light.outerCutOff, 0, 90);
 
         ImGui::End();
     }
