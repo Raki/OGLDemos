@@ -704,7 +704,7 @@ namespace GLUtility
 		for (auto i = 0; i < totalVerts; i++)
 		{
 			auto v = glm::vec3(tMat*glm::vec4(vArr.at(i),1.0f));
-			auto n = nArr.at(i);
+			auto n = glm::normalize(nArr.at(i));
 			auto uv = uvArr.at(i);
 			vData.push_back({ v,n,color });
 			iData.push_back((unsigned int)iData.size());
