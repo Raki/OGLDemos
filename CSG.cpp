@@ -130,7 +130,7 @@ void renderImgui();
 
 
 std::shared_ptr<ObjContainer> loadObjModel(std::string filePath,std::string defaultDiffuse="assets/textures/default.jpg");
-void loadObj(std::string filePath,std::vector<glm::vec3> &vData,std::vector<unsigned int> &iData);
+void loadObj(std::string filePath,std::vector<double> &vData,std::vector<unsigned int> &iData);
 
 #pragma endregion
 
@@ -804,6 +804,7 @@ void setupCSGMesh()
 
 void setupCSGMeshV2()
 {
+    
     struct InputMesh {
         // variables for mesh data in a format suited for MCUT
         std::vector<uint32_t> faceSizesArray; // vertices per face
@@ -828,6 +829,8 @@ void setupCSGMeshV2()
         csgMesh->numFaces = iData.size() / 3;
     };
 
+    
+
     auto srcMesh = std::make_shared<InputMesh>();
     srcMesh->fpath = "srcCube";
     {
@@ -837,15 +840,24 @@ void setupCSGMeshV2()
         GLUtility::fillCubeforCSG(2.f, 2.f, 2.f, m, vData, iData);
         mesh2Csg(vData, iData, srcMesh);
     }
+    if(false)
+    {
+        //std::vector<float> vData;
+        //std::vector<unsigned int> iData;
+        loadObj("assets/vase/estrellica.obj", srcMesh->vertexCoordsArray, srcMesh->faceIndicesArray);
+        srcMesh->numFaces = srcMesh->faceIndicesArray.size() / 3;
+        srcMesh->numVertices = srcMesh->vertexCoordsArray.size();
+        srcMesh->faceSizesArray = std::vector<uint32_t>(srcMesh->faceIndicesArray.size() / 3, 3);
+    }
 
     auto cutMesh = std::make_shared<InputMesh>();
-    srcMesh->fpath = "cutCube";
+    cutMesh->fpath = "cutCube";
     {
         std::vector<glm::vec3> vData;
         std::vector<unsigned int> iData;
         //auto m = glm::translate(glm::mat4(1), glm::vec3(0.2f, 0.3f, 0.4f));
-        auto m = glm::translate(glm::mat4(1), glm::vec3(0.2f, 0.3f, 0.4f))*glm::rotate(glm::mat4(1),glm::radians(45.f),GLUtility::Y_AXIS);
-        GLUtility::fillCubeforCSG(2.f, 2.f, 2.f, m, vData, iData);
+        auto m = glm::translate(glm::mat4(1), glm::vec3(0.2f, 0.5f, 0.4f))*glm::rotate(glm::mat4(1),glm::radians(45.f),GLUtility::Y_AXIS);
+        GLUtility::fillCubeforCSG(1.f, 1.f, 1.f, m, vData, iData);
         mesh2Csg(vData, iData, cutMesh);
     }
 
@@ -1280,7 +1292,6 @@ std::shared_ptr<ObjContainer> loadObjModel(std::string filePath,std::string defa
     std::string err;
     bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, filename.c_str(), basepath.c_str());
 
-
     auto objContainer = std::make_shared<ObjContainer>();
     vector<std::shared_ptr<ObjShape>> objParts;
     vector<VertexData> vData;
@@ -1493,6 +1504,74 @@ std::shared_ptr<ObjContainer> loadObjModel(std::string filePath,std::string defa
     
     return objContainer;
     //objModels.push_back(objContainer);
+}
+
+void loadObj(std::string filePath, std::vector<double>& vData, std::vector<unsigned int>& iData)
+{
+    tinyobj::attrib_t attrib;
+    std::vector<tinyobj::shape_t> shapes;
+    std::vector<tinyobj::material_t> materials;
+
+    std::string warn;
+    std::string err;
+    bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, filePath.c_str(), nullptr);
+
+    if (!ret)
+    {
+        fmt::print("handle it");
+    }
+    attrib.vertices;
+    
+    for (const auto& v : attrib.vertices)
+    {
+        vData.push_back(static_cast<double>(v));
+    }
+    //vData.assign(attrib.vertices.begin(), attrib.vertices.end());
+    
+    
+    /*glm::vec3 bbMin = glm::vec3(std::numeric_limits<float>::max());
+    glm::vec3 bbMax = glm::vec3(-std::numeric_limits<float>::max());*/
+
+    for (size_t s = 0; s < shapes.size(); s++)
+    {
+        // Loop over faces(polygon)
+        int pMid = -1;
+        auto part = std::make_shared<ObjShape>();
+        auto shape = shapes.at(s);
+
+        const size_t numIndices = shape.mesh.indices.size();
+        for (const auto& index : shape.mesh.indices)
+        {
+            iData.push_back(index.vertex_index);
+        }
+        //iData.assign(shape.mesh.indices.begin(), shape.mesh.indices.end());
+        break;
+        //for (size_t i = 0; i < numIndices; i += 3)
+        //{
+        //    for (size_t id = i; id < i + 3; id++)
+        //    {
+        //        auto idx = shape.mesh.indices.at(id);
+        //        //vertices
+
+        //        tinyobj::real_t vx = attrib.vertices[3 * size_t(idx.vertex_index) + 0];
+        //        tinyobj::real_t vy = attrib.vertices[3 * size_t(idx.vertex_index) + 1];
+        //        tinyobj::real_t vz = attrib.vertices[3 * size_t(idx.vertex_index) + 2];
+
+        //        bbMin.x = std::min(vx, bbMin.x);
+        //        bbMin.y = std::min(vy, bbMin.y);
+        //        bbMin.z = std::min(vz, bbMin.z);
+
+        //        bbMax.x = std::max(vx, bbMax.x);
+        //        bbMax.y = std::max(vy, bbMax.y);
+        //        bbMax.z = std::max(vz, bbMax.z);
+
+        //        auto pos = glm::vec3(vx, vy, vz);
+
+        //        vData.push_back(pos);
+        //        iData.push_back((unsigned int)iData.size());
+        //    }
+        //}
+    }
 }
 
 
