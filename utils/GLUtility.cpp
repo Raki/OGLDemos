@@ -711,6 +711,76 @@ namespace GLUtility
 		}
 	}
 
+	void fillCubeforCSG(float width, float height, float depth, glm::mat4 tMat, vector<glm::vec3>& vData, vector<unsigned int>& iData)
+	{
+		glm::vec3 bbMin, bbMax;
+		bbMax.x = width / 2;
+		bbMax.y = height / 2;
+		bbMax.z = depth / 2;
+		bbMin.x = -width / 2;
+		bbMin.y = -height / 2;
+		bbMin.z = -depth / 2;
+
+
+		//top
+		glm::vec3 t1 = glm::vec3(tMat*glm::vec4(bbMin.x, bbMax.y, bbMin.z,1.f)); //0
+		glm::vec3 t2 = glm::vec3(tMat*glm::vec4(bbMax.x, bbMax.y, bbMin.z,1.f)); //1
+		glm::vec3 t3 = glm::vec3(tMat*glm::vec4(bbMax.x, bbMax.y, bbMax.z,1.f)); //2
+		glm::vec3 t4 = glm::vec3(tMat*glm::vec4(bbMin.x, bbMax.y, bbMax.z,1.f)); //3
+											  
+		//bottom							  
+		glm::vec3 b1 = glm::vec3(tMat*glm::vec4(bbMin.x, bbMin.y, bbMin.z,1.f)); //4
+		glm::vec3 b2 = glm::vec3(tMat*glm::vec4(bbMax.x, bbMin.y, bbMin.z,1.f)); //5
+		glm::vec3 b3 = glm::vec3(tMat*glm::vec4(bbMax.x, bbMin.y, bbMax.z,1.f)); //6
+		glm::vec3 b4 = glm::vec3(tMat*glm::vec4(bbMin.x, bbMin.y, bbMax.z,1.f)); //7
+
+		// front			back
+		//		t4--t3			t2--t1
+		//		|    |			|	|
+		//		b4--b3			b2--b1
+		// left			right
+		//		t1--t4			t3--t2
+		//		|    |			|	|
+		//		b1--b4			b3--b2
+		// top			bottom
+		//		t1--t2			b4--b3
+		//		|    |			|	|
+		//		t4--t3			b1--b2
+		vData.push_back(t1); vData.push_back(t2); vData.push_back(t3); vData.push_back(t4);
+		vData.push_back(b1); vData.push_back(b2); vData.push_back(b3); vData.push_back(b4);
+
+		//b4,b3,t3
+		iData.push_back(7); iData.push_back(6); iData.push_back(2);
+		//b4,t3,t4
+		iData.push_back(7); iData.push_back(2); iData.push_back(3);
+
+		//b2,b1,t1
+		iData.push_back(5); iData.push_back(4); iData.push_back(0);
+		//b2,t1,t2
+		iData.push_back(5); iData.push_back(0); iData.push_back(1);
+
+		//b1,b4,t4
+		iData.push_back(4); iData.push_back(7); iData.push_back(3);
+		//b1,t4,t1
+		iData.push_back(4); iData.push_back(3); iData.push_back(0);
+
+		//b3,b2,t2
+		iData.push_back(6); iData.push_back(5); iData.push_back(1);
+		//b3,t2,t3
+		iData.push_back(6); iData.push_back(1); iData.push_back(2);
+
+		//t4,t3,t2
+		iData.push_back(3); iData.push_back(2); iData.push_back(1);
+		//t4,t2,t1
+		iData.push_back(3); iData.push_back(1); iData.push_back(0);
+
+		//b1,b2,b3
+		iData.push_back(4); iData.push_back(5); iData.push_back(6);
+		//b1,b3,b4
+		iData.push_back(4); iData.push_back(6); iData.push_back(7);
+
+	}
+
 	std::shared_ptr<Mesh> getCubeVec3(float width, float height, float depth)
 	{
 		bool hasTex = true;

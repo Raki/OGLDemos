@@ -1,4 +1,5 @@
 
+#include <iomanip>
 #include "CommonHeaders.h"
 #include "GlslProgram.h"
 #include "GLUtility.h"
@@ -9,6 +10,13 @@
 #include "mcut/mcut.h"
 #include <fmt/format.h>
 using namespace GLUtility;
+
+#define OUTPUT_DIR "."
+#define my_assert(cond)                             \
+    if (!(cond)) {                                  \
+        fprintf(stderr, "MCUT error: %s\n", #cond); \
+        std::exit(1);                               \
+    }
 
 #pragma region vars
 
@@ -112,6 +120,8 @@ void cleanGL();
 void initImgui();
 void setupCamera();
 void setupScene();
+void setupCSGMesh();
+void setupCSGMeshV2();
 std::shared_ptr<FrameBuffer> getFboMSA(std::shared_ptr<FrameBuffer> refFbo,int samples);
 void updateFrame();
 void renderFrame();
@@ -120,7 +130,7 @@ void renderImgui();
 
 
 std::shared_ptr<ObjContainer> loadObjModel(std::string filePath,std::string defaultDiffuse="assets/textures/default.jpg");
-
+void loadObj(std::string filePath,std::vector<glm::vec3> &vData,std::vector<unsigned int> &iData);
 
 #pragma endregion
 
@@ -357,6 +367,35 @@ void setupScene()
     
     pvColrObjs.push_back(groupObj);
     
+    setupCSGMeshV2();
+}
+
+void setupCSGMesh()
+{
+    struct InputMesh {
+        // variables for mesh data in a format suited for MCUT
+        std::vector<uint32_t> faceSizesArray; // vertices per face
+        std::vector<uint32_t> faceIndicesArray; // face indices
+        std::vector<double> vertexCoordsArray; // vertex coords
+        uint32_t numVertices;
+        uint32_t    numFaces;
+    };
+
+    auto mesh2Csg = [](vector<glm::vec3>& vData, vector<unsigned int>& iData,std::shared_ptr<InputMesh> csgMesh)
+    {
+        for (const auto &vert : vData)
+        {
+            csgMesh->vertexCoordsArray.push_back(vert.x);
+            csgMesh->vertexCoordsArray.push_back(vert.y);
+            csgMesh->vertexCoordsArray.push_back(vert.z);
+        }
+        csgMesh->faceIndicesArray.assign(iData.begin(), iData.end());
+        csgMesh->faceSizesArray = std::vector<uint32_t>(iData.size() / 3, 3);
+        csgMesh->numVertices = vData.size();
+        csgMesh->numFaces = iData.size() / 3;
+    };
+
+    
     //1. create mesh
       //Shape to Cut:
     double cubeVertices[] = {
@@ -390,6 +429,31 @@ void setupScene()
     uint32_t cubeFaceSizes[] = {
         3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3 };
 
+    auto srcMesh = std::make_shared<InputMesh>();
+    {
+        std::vector<glm::vec3> vData;
+        std::vector<unsigned int> iData;
+        auto m = glm::mat4(1);
+        GLUtility::fillCubeforCSG(2.f, 2.f, 2.f, m, vData, iData);
+        mesh2Csg(vData, iData, srcMesh);
+    }
+
+    auto cutMesh = std::make_shared<InputMesh>();
+    {
+        std::vector<glm::vec3> vData;
+        std::vector<unsigned int> iData;
+        auto m = glm::translate(glm::mat4(1),glm::vec3(0.2f,0.3f,0.4f));
+        GLUtility::fillCubeforCSG(2.f, 2.f, 2.f, m, vData, iData);
+        mesh2Csg(vData, iData, cutMesh);
+    }
+   /* srcMesh->vertexCoordsArray.assign(cubeVertices, cubeVertices + (numCubeVertices * 3));
+    srcMesh->faceIndicesArray.assign(cubeFaces,cubeFaces+(numCubeFaces*3));
+    srcMesh->faceSizesArray.assign(cubeFaceSizes, cubeFaceSizes + 12);
+    srcMesh->numVertices = 8;
+    srcMesh->numFaces = 12;*/
+
+
+    if (false)
     {
         std::vector<glm::vec3> vArr, nArr(8);
         std::vector<unsigned int> iArr;
@@ -397,24 +461,24 @@ void setupScene()
 
         for (size_t i = 0; i < 24; i += 3)
         {
-            vArr.push_back(glm::vec3(cubeVertices[i], cubeVertices[i+1], cubeVertices[i+2]));
+            vArr.push_back(glm::vec3(cubeVertices[i], cubeVertices[i + 1], cubeVertices[i + 2]));
         }
         for (size_t i = 0; i < 36; i += 3)
         {
             iArr.push_back(cubeFaces[i]);
-            iArr.push_back(cubeFaces[i+1]);
-            iArr.push_back(cubeFaces[i+2]);
-            auto n = glm::normalize(GLUtility::getNormal(vArr.at(cubeFaces[i]), vArr.at(cubeFaces[i+1]), vArr.at(cubeFaces[i+2])));
+            iArr.push_back(cubeFaces[i + 1]);
+            iArr.push_back(cubeFaces[i + 2]);
+            auto n = glm::normalize(GLUtility::getNormal(vArr.at(cubeFaces[i]), vArr.at(cubeFaces[i + 1]), vArr.at(cubeFaces[i + 2])));
             nArr.at(cubeFaces[i]) = n;
-            nArr.at(cubeFaces[i + 1]) =n;
-            nArr.at(cubeFaces[i + 2]) =n;
+            nArr.at(cubeFaces[i + 1]) = n;
+            nArr.at(cubeFaces[i + 2]) = n;
             /*nArr.at(cubeFaces[i]) /= 2.f;
             nArr.at(cubeFaces[i + 1]) /= 2.f;
             nArr.at(cubeFaces[i + 2]) /= 2.f;*/
         }
         for (size_t i = 0; i < 8; i += 1)
         {
-            vData.push_back({vArr.at(i),nArr.at(i),glm::vec3(0.5f,0.5f,1.f)});
+            vData.push_back({ vArr.at(i),nArr.at(i),glm::vec3(0.5f,0.5f,1.f) });
         }
 
         auto mesh = std::make_shared<Mesh>(vData, iArr);
@@ -438,8 +502,10 @@ void setupScene()
        1,2,0,
         1,3,2
     };
+    uint32_t cutMeshFaceSizes[] = {
+        3, 3 };
 
-
+    if (false)
     {
         std::vector<glm::vec3> vArr, nArr(4);
         std::vector<unsigned int> iArr;
@@ -493,17 +559,19 @@ void setupScene()
     // ----------------
     err = mcDispatch(
         context,
-        MC_DISPATCH_VERTEX_ARRAY_DOUBLE,
-        cubeVertices,
-        cubeFaces,
-        cubeFaceSizes,
-        numCubeVertices,
-        numCubeFaces,
-        cutMeshVertices,
-        cutMeshFaces,
-        nullptr, // cutMeshFaceSizes, // no need to give 'faceSizes' parameter since cut-mesh is a triangle mesh
-        numCutMeshVertices,
-        numCutMeshFaces);
+        MC_DISPATCH_VERTEX_ARRAY_DOUBLE ,
+        //MC_DISPATCH_FILTER_FRAGMENT_SEALING_INSIDE | MC_DISPATCH_FILTER_FRAGMENT_LOCATION_ABOVE,
+        //MC_DISPATCH_FILTER_FRAGMENT_SEALING_OUTSIDE | MC_DISPATCH_FILTER_FRAGMENT_LOCATION_BELOW,
+        srcMesh->vertexCoordsArray.data(),//cubeVertices,
+        srcMesh->faceIndicesArray.data(),//cubeFaces,
+        srcMesh->faceSizesArray.data(),//cubeFaceSizes,
+        srcMesh->numVertices,
+        srcMesh->numFaces,
+        cutMesh->vertexCoordsArray.data(),
+        cutMesh->faceIndicesArray.data(),
+        nullptr,//cutMeshFaceSizes, // no need to give 'faceSizes' parameter since cut-mesh is a triangle mesh
+        cutMesh->numVertices,
+        cutMesh->numFaces);
 
     if (err != MC_NO_ERROR)
     {
@@ -516,7 +584,7 @@ void setupScene()
     uint32_t numConnComps;
     std::vector<McConnectedComponent> connComps;
 
-    err = mcGetConnectedComponents(context, MC_CONNECTED_COMPONENT_TYPE_ALL, 0, NULL, &numConnComps);
+    err = mcGetConnectedComponents(context, MC_CONNECTED_COMPONENT_TYPE_FRAGMENT, 0, NULL, &numConnComps);
 
     if (err != MC_NO_ERROR)
     {
@@ -532,7 +600,7 @@ void setupScene()
 
     connComps.resize(numConnComps);
 
-    err = mcGetConnectedComponents(context, MC_CONNECTED_COMPONENT_TYPE_ALL, (uint32_t)connComps.size(), connComps.data(), NULL);
+    err = mcGetConnectedComponents(context, MC_CONNECTED_COMPONENT_TYPE_FRAGMENT, (uint32_t)connComps.size(), connComps.data(), NULL);
 
     if (err != MC_NO_ERROR)
     {
@@ -542,9 +610,10 @@ void setupScene()
 
     // 5. query the data of each connected component from MCUT
     // -------------------------------------------------------
-   
+
     for (int i = 0; i < (int)connComps.size(); ++i)
     {
+
         McConnectedComponent connComp = connComps[i]; // connected compoenent id
 
         uint64_t numBytes = 0;
@@ -576,7 +645,7 @@ void setupScene()
         // -------------------
 
         numBytes = 0;
-        err = mcGetConnectedComponentData(context, connComp, MC_CONNECTED_COMPONENT_DATA_FACE, 0, NULL, &numBytes);
+        err = mcGetConnectedComponentData(context, connComp, MC_CONNECTED_COMPONENT_DATA_FACE_TRIANGULATION, 0, NULL, &numBytes);
 
         if (err != MC_NO_ERROR)
         {
@@ -587,7 +656,7 @@ void setupScene()
         std::vector<uint32_t> faceIndices;
         faceIndices.resize(numBytes / sizeof(uint32_t));
 
-        err = mcGetConnectedComponentData(context, connComp, MC_CONNECTED_COMPONENT_DATA_FACE, numBytes, faceIndices.data(), NULL);
+        err = mcGetConnectedComponentData(context, connComp, MC_CONNECTED_COMPONENT_DATA_FACE_TRIANGULATION, numBytes, faceIndices.data(), NULL);
 
         if (err != MC_NO_ERROR)
         {
@@ -597,7 +666,7 @@ void setupScene()
 
         // query the face sizes
         // ------------------------
-        numBytes = 0;
+        /*numBytes = 0;
         err = mcGetConnectedComponentData(context, connComp, MC_CONNECTED_COMPONENT_DATA_FACE_SIZE, 0, NULL, &numBytes);
         if (err != MC_NO_ERROR)
         {
@@ -614,31 +683,31 @@ void setupScene()
         {
             fprintf(stderr, "2:mcGetConnectedComponentData(MC_CONNECTED_COMPONENT_DATA_FACE_SIZE) failed (err=%d)\n", (int)err);
             exit(1);
-        }
-
+        }*/
+        std::vector<uint32_t> faceSizes(faceIndices.size() / 3, 3);
         char fnameBuf[32];
         sprintf(fnameBuf, "conncomp%d.off", i);
 
-        
+
 
         float* pVertices = vertices.data();
         uint32_t* pFaceIndices = (uint32_t*)faceIndices.data();
         uint32_t* pFaceSizes = (uint32_t*)faceSizes.data();
         uint32_t numVertices = (uint32_t)vertices.size() / 3;
         uint32_t numFaces = (uint32_t)faceSizes.size();
-   
+
 
         int faceBaseOffset = 0;
-        if(false)
-        for (i = 0; i < (int)numFaces; ++i)
+        //if(false)
+        for (size_t f = 0; f < numFaces; ++f)
         {
-            uint32_t faceVertexCount = pFaceSizes[i];
+            uint32_t faceVertexCount = pFaceSizes[f];
             int j;
             std::vector<GLUtility::VDPosNormColr> vertData;
             std::vector<unsigned int> iArr;
             std::vector<glm::vec3> vArr;
-            std::vector<glm::vec3>  nArr; 
-            glm::vec3 center=glm::vec3(0);
+            std::vector<glm::vec3>  nArr;
+            glm::vec3 center = glm::vec3(0);
             std::cout << "\n";
             for (j = 0; j < (int)faceVertexCount; ++j)
             {
@@ -651,16 +720,16 @@ void setupScene()
             std::cout << "\n";
             faceBaseOffset += faceVertexCount;
 
-            if(faceVertexCount>3)
+            if (faceVertexCount > 3)
             {
                 center /= static_cast<float>(faceVertexCount);
                 vArr.push_back(center);
                 nArr.resize(vArr.size());
 
-                for (size_t v = 0; v < faceVertexCount-1; v++)
+                for (size_t v = 0; v < faceVertexCount - 1; v++)
                 {
-                    unsigned int ind0 = vArr.size() - 1,ind1,ind2;
-                    iArr.push_back(vArr.size()-1);
+                    unsigned int ind0 = vArr.size() - 1, ind1, ind2;
+                    iArr.push_back(vArr.size() - 1);
                     glm::vec3 n;
                     if (v == faceVertexCount - 2)
                     {
@@ -678,8 +747,8 @@ void setupScene()
                         iArr.push_back(v + 1);
                         n = glm::normalize(GLUtility::getNormal(vArr.at(ind0), vArr.at(ind1), vArr.at(ind2)));
                     }
-                    
-                    
+
+
                     nArr.at(ind0) += n;
                     nArr.at(ind0) /= 2.0f;
                     nArr.at(ind1) += n;
@@ -711,7 +780,7 @@ void setupScene()
         }
 
     }
-    
+
     // 6. free connected component data
     // --------------------------------
     err = mcReleaseConnectedComponents(context, 0, NULL);
@@ -731,11 +800,293 @@ void setupScene()
         fprintf(stderr, "mcReleaseContext failed (err=%d)\n", (int)err);
         exit(1);
     }
-
-    
-    
 }
 
+void setupCSGMeshV2()
+{
+    struct InputMesh {
+        // variables for mesh data in a format suited for MCUT
+        std::vector<uint32_t> faceSizesArray; // vertices per face
+        std::vector<uint32_t> faceIndicesArray; // face indices
+        std::vector<double> vertexCoordsArray; // vertex coords
+        uint32_t numVertices;
+        uint32_t    numFaces;
+        std::string fpath;
+    };
+
+    auto mesh2Csg = [](vector<glm::vec3>& vData, vector<unsigned int>& iData, std::shared_ptr<InputMesh> csgMesh)
+    {
+        for (const auto& vert : vData)
+        {
+            csgMesh->vertexCoordsArray.push_back(vert.x);
+            csgMesh->vertexCoordsArray.push_back(vert.y);
+            csgMesh->vertexCoordsArray.push_back(vert.z);
+        }
+        csgMesh->faceIndicesArray.assign(iData.begin(), iData.end());
+        csgMesh->faceSizesArray = std::vector<uint32_t>(iData.size() / 3, 3);
+        csgMesh->numVertices = vData.size();
+        csgMesh->numFaces = iData.size() / 3;
+    };
+
+    auto srcMesh = std::make_shared<InputMesh>();
+    srcMesh->fpath = "srcCube";
+    {
+        std::vector<glm::vec3> vData;
+        std::vector<unsigned int> iData;
+        auto m = glm::mat4(1);
+        GLUtility::fillCubeforCSG(2.f, 2.f, 2.f, m, vData, iData);
+        mesh2Csg(vData, iData, srcMesh);
+    }
+
+    auto cutMesh = std::make_shared<InputMesh>();
+    srcMesh->fpath = "cutCube";
+    {
+        std::vector<glm::vec3> vData;
+        std::vector<unsigned int> iData;
+        //auto m = glm::translate(glm::mat4(1), glm::vec3(0.2f, 0.3f, 0.4f));
+        auto m = glm::translate(glm::mat4(1), glm::vec3(0.2f, 0.3f, 0.4f))*glm::rotate(glm::mat4(1),glm::radians(45.f),GLUtility::Y_AXIS);
+        GLUtility::fillCubeforCSG(2.f, 2.f, 2.f, m, vData, iData);
+        mesh2Csg(vData, iData, cutMesh);
+    }
+
+    std::string boolOpStr="A_NOT_B";
+    //const char* argv = "A_NOT_B";
+    //if (strcmp(argv, "-u") == 0) {
+    //    boolOpStr = "UNION";
+    //}
+    //else if (strcmp(argv, "-i") == 0) {
+    //    boolOpStr = "INTERSECTION";
+    //}
+    //else if (strcmp(argv, "-ds") == 0) {
+    //    boolOpStr = "A_NOT_B";
+    //}
+    //else if (strcmp(argv, "-dc") == 0) {
+    //    boolOpStr = "B_NOT_A";
+    //}
+    //else {
+    //    fprintf(stderr, "invalid boolOp argument value\n");
+    //    //return 1;
+    //}
+    
+    
+    // create a context
+    // -------------------
+    McContext context = MC_NULL_HANDLE;
+    McResult err = mcCreateContext(&context, MC_DEBUG);
+    my_assert(err == MC_NO_ERROR);
+
+    //  do the cutting (boolean ops)
+    // -----------------------------
+    
+
+    // We can either let MCUT compute all possible meshes (including patches etc.), or we can
+    // constrain the library to compute exactly the boolean op mesh we want. This 'constrained' case
+    // is done with the following flags.
+    // NOTE: you can extend these flags by bitwise ORing with additional flags (see `McDispatchFlags' in mcut.h)
+    const std::map<std::string, McFlags> booleanOps = {
+        { "A_NOT_B", MC_DISPATCH_FILTER_FRAGMENT_SEALING_INSIDE | MC_DISPATCH_FILTER_FRAGMENT_LOCATION_ABOVE },
+        { "B_NOT_A", MC_DISPATCH_FILTER_FRAGMENT_SEALING_OUTSIDE | MC_DISPATCH_FILTER_FRAGMENT_LOCATION_BELOW },
+        { "UNION", MC_DISPATCH_FILTER_FRAGMENT_SEALING_OUTSIDE | MC_DISPATCH_FILTER_FRAGMENT_LOCATION_ABOVE },
+        { "INTERSECTION", MC_DISPATCH_FILTER_FRAGMENT_SEALING_INSIDE | MC_DISPATCH_FILTER_FRAGMENT_LOCATION_BELOW }
+    };
+
+    for (std::map<std::string, McFlags>::const_iterator boolOpIter = booleanOps.cbegin(); boolOpIter != booleanOps.cend(); ++boolOpIter) {
+        if (boolOpIter->first != boolOpStr && boolOpStr != "*") {
+            continue;
+        }
+
+        const McFlags boolOpFlags = boolOpIter->second;
+        const std::string boolOpName = boolOpIter->first;
+
+        printf("compute %s\n", boolOpName.c_str());
+
+        auto beginTime = std::chrono::system_clock::now();
+        err = mcDispatch(
+            context,
+            MC_DISPATCH_VERTEX_ARRAY_DOUBLE | // vertices are in array of doubles
+            MC_DISPATCH_ENFORCE_GENERAL_POSITION | // perturb if necessary
+            boolOpFlags, // filter flags which specify the type of output we want
+            // source mesh
+            reinterpret_cast<const void*>(srcMesh->vertexCoordsArray.data()),
+            reinterpret_cast<const uint32_t*>(srcMesh->faceIndicesArray.data()),
+            srcMesh->faceSizesArray.data(),
+            static_cast<uint32_t>(srcMesh->vertexCoordsArray.size() / 3),
+            static_cast<uint32_t>(srcMesh->faceSizesArray.size()),
+            // cut mesh
+            reinterpret_cast<const void*>(cutMesh->vertexCoordsArray.data()),
+            cutMesh->faceIndicesArray.data(),
+            cutMesh->faceSizesArray.data(),
+            static_cast<uint32_t>(cutMesh->vertexCoordsArray.size() / 3),
+            static_cast<uint32_t>(cutMesh->faceSizesArray.size()));
+
+        my_assert(err == MC_NO_ERROR);
+
+        // query the number of available connected component
+        // --------------------------------------------------
+        uint32_t numConnComps;
+        err = mcGetConnectedComponents(context, MC_CONNECTED_COMPONENT_TYPE_FRAGMENT, 0, NULL, &numConnComps);
+        my_assert(err == MC_NO_ERROR);
+
+        printf("connected components: %d\n", (int)numConnComps);
+
+        if (numConnComps == 0) {
+            fprintf(stdout, "no connected components found\n");
+            exit(0);
+        }
+
+        // my_assert(numConnComps == 1); // exactly 1 result (for this example)
+
+        std::vector<McConnectedComponent> connectedComponents(numConnComps, MC_NULL_HANDLE);
+        connectedComponents.resize(numConnComps);
+        err = mcGetConnectedComponents(context, MC_CONNECTED_COMPONENT_TYPE_FRAGMENT, (uint32_t)connectedComponents.size(), connectedComponents.data(), NULL);
+
+        my_assert(err == MC_NO_ERROR);
+
+        // query the data of each connected component from MCUT
+        // -------------------------------------------------------
+
+        McConnectedComponent connComp = connectedComponents[0];
+
+        // query the vertices
+        // ----------------------
+
+        uint64_t numBytes = 0;
+        err = mcGetConnectedComponentData(context, connComp, MC_CONNECTED_COMPONENT_DATA_VERTEX_DOUBLE, 0, NULL, &numBytes);
+        my_assert(err == MC_NO_ERROR);
+        uint32_t ccVertexCount = (uint32_t)(numBytes / (sizeof(double) * 3));
+        std::vector<double> ccVertices((uint64_t)ccVertexCount * 3u, 0);
+        err = mcGetConnectedComponentData(context, connComp, MC_CONNECTED_COMPONENT_DATA_VERTEX_DOUBLE, numBytes, (void*)ccVertices.data(), NULL);
+        my_assert(err == MC_NO_ERROR);
+
+        // query the faces
+        // -------------------
+        numBytes = 0;
+
+        err = mcGetConnectedComponentData(context, connComp, MC_CONNECTED_COMPONENT_DATA_FACE_TRIANGULATION, 0, NULL, &numBytes);
+        my_assert(err == MC_NO_ERROR);
+        std::vector<uint32_t> ccFaceIndices(numBytes / sizeof(uint32_t), 0);
+        err = mcGetConnectedComponentData(context, connComp, MC_CONNECTED_COMPONENT_DATA_FACE_TRIANGULATION, numBytes, ccFaceIndices.data(), NULL);
+        my_assert(err == MC_NO_ERROR);
+
+        std::vector<uint32_t> faceSizes(ccFaceIndices.size() / 3, 3);
+
+        const uint32_t ccFaceCount = static_cast<uint32_t>(faceSizes.size());
+
+        /// ------------------------------------------------------------------------------------
+
+        // Here we show, how to know when connected components, pertain particular boolean operations.
+
+        McPatchLocation patchLocation = (McPatchLocation)0;
+
+        err = mcGetConnectedComponentData(context, connComp, MC_CONNECTED_COMPONENT_DATA_PATCH_LOCATION, sizeof(McPatchLocation), &patchLocation, NULL);
+        my_assert(err == MC_NO_ERROR);
+
+        McFragmentLocation fragmentLocation = (McFragmentLocation)0;
+        err = mcGetConnectedComponentData(context, connComp, MC_CONNECTED_COMPONENT_DATA_FRAGMENT_LOCATION, sizeof(McFragmentLocation), &fragmentLocation, NULL);
+        my_assert(err == MC_NO_ERROR);
+
+        // save cc mesh to .obj file
+        // -------------------------
+
+        auto extract_fname = [](const std::string& full_path) {
+            // get filename
+            std::string base_filename = full_path.substr(full_path.find_last_of("/\\") + 1);
+            // remove extension from filename
+            std::string::size_type const p(base_filename.find_last_of('.'));
+            std::string file_without_extension = base_filename.substr(0, p);
+            return file_without_extension;
+        };
+
+        //std::string fpath(OUTPUT_DIR "/" + extract_fname(srcMesh->fpath) + "_" + extract_fname(cutMesh->fpath) + "_" + boolOpName + ".obj");
+
+        //printf("write file: %s\n", fpath.c_str());
+
+        //std::ofstream file(fpath);
+
+        std::vector<glm::vec3>vCSGArr;
+        // write vertices and normals
+        for (uint32_t i = 0; i < ccVertexCount; ++i) {
+            double x = ccVertices[(uint64_t)i * 3 + 0];
+            double y = ccVertices[(uint64_t)i * 3 + 1];
+            double z = ccVertices[(uint64_t)i * 3 + 2];
+            //file << "v " << std::setprecision(std::numeric_limits<long double>::digits10 + 1) << x << " " << y << " " << z << std::endl;
+            vCSGArr.push_back(glm::vec3(x, y, z));
+        }
+
+        int faceVertexOffsetBase = 0;
+
+        std::vector<unsigned int>iCSGArr;
+        // for each face in CC
+        for (uint32_t f = 0; f < ccFaceCount; ++f) {
+            bool reverseWindingOrder = (fragmentLocation == MC_FRAGMENT_LOCATION_BELOW) && (patchLocation == MC_PATCH_LOCATION_OUTSIDE);
+            int faceSize = faceSizes.at(f);
+            //file << "f ";
+            // for each vertex in face
+            for (int v = (reverseWindingOrder ? (faceSize - 1) : 0);
+                (reverseWindingOrder ? (v >= 0) : (v < faceSize));
+                v += (reverseWindingOrder ? -1 : 1)) {
+                const int ccVertexIdx = ccFaceIndices[(uint64_t)faceVertexOffsetBase + v];
+                //file << (ccVertexIdx + 1) << " ";
+                iCSGArr.push_back(ccVertexIdx);
+            } // for (int v = 0; v < faceSize; ++v) {
+            //file << std::endl;
+
+            faceVertexOffsetBase += faceSize;
+        }
+
+        std::vector<glm::vec3> vArr;
+        std::vector<glm::vec3> nArr(iCSGArr.size());
+        std::vector<unsigned int> iArr;
+
+        for (size_t ind = 0; ind < iCSGArr.size(); ind += 3)
+        {
+            auto ind1 = ind + 1;
+            auto ind2 = ind + 2;
+            vArr.push_back(vCSGArr.at(iCSGArr.at(ind)));
+            vArr.push_back(vCSGArr.at(iCSGArr.at(ind1)));
+            vArr.push_back(vCSGArr.at(iCSGArr.at(ind2)));
+            auto n = glm::normalize(GLUtility::getNormal(vCSGArr.at(iCSGArr.at(ind)), vCSGArr.at(iCSGArr.at(ind1)), vCSGArr.at(iCSGArr.at(ind2))));
+            nArr.at(vArr.size() - 1)+=n;
+            nArr.at(vArr.size() - 2)+=n;
+            nArr.at(vArr.size() - 3)+=n;
+            nArr.at(vArr.size() - 1) /= 2.f;
+            nArr.at(vArr.size() - 2) /= 2.f;
+            nArr.at(vArr.size() - 3) /= 2.f;
+            iArr.push_back(iArr.size());
+            iArr.push_back(iArr.size());
+            iArr.push_back(iArr.size());
+        }
+
+        std::vector<GLUtility::VDPosNormColr> vData;
+        for (size_t ind = 0; ind < vArr.size(); ind++)
+        {
+            vData.push_back({ vArr.at(ind),nArr.at(ind),glm::vec3(0.5f,0.5f,1.0f) });
+        }
+
+        auto mesh = std::make_shared<Mesh>(vData, iArr);
+        mesh->tMatrix = glm::mat4(1);
+        mesh->drawCommand = GL_TRIANGLES;
+        pvColrObjs.push_back(mesh);
+        auto endTime = std::chrono::system_clock::now();
+        fmt::print("Time take for mesh generation {} milli sec\n", std::chrono::duration_cast<std::chrono::milliseconds>(endTime - beginTime).count());
+
+        // 6. free connected component data
+        // --------------------------------
+        err = mcReleaseConnectedComponents(context, (uint32_t)connectedComponents.size(), connectedComponents.data());
+        my_assert(err == MC_NO_ERROR);
+    }
+
+    
+    // 7. destroy context
+    // ------------------
+    err = mcReleaseContext(context);
+
+    if (err != MC_NO_ERROR)
+    {
+        fprintf(stderr, "mcReleaseContext failed (err=%d)\n", (int)err);
+        exit(1);
+    }
+}
 
 std::shared_ptr<FrameBuffer> getFboMSA(std::shared_ptr<FrameBuffer> refFbo, int samples)
 {
@@ -815,6 +1166,7 @@ void renderFrame()
 
     basicProgram->setVec3f("lightPos", light.position);
     basicProgram->setVec3f("lightColr", light.diffuse);
+    basicProgram->setFloat("lReach", 3.f);
 
     basicProgram->activeSubrountine("getColr", GL_FRAGMENT_SHADER);
     glm::mat4 mv;
