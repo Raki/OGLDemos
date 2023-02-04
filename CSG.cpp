@@ -233,7 +233,82 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
 {
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
     {
-        //capturePos = true;
+        double wx, wy; //window coords
+        glfwGetCursorPos(window, &wx, &wy);
+
+        float x = (2.0f * static_cast<float>(wx)) / WIN_WIDTH - 1.0f;
+        float y = 1.0f - (2.0f * static_cast<float>(wy)) / WIN_HEIGHT;
+        float z = 1.0f;
+        glm::vec3 ray_nds = glm::vec3(x, y, z);
+        glm::vec4 ray_clip = glm::vec4(ray_nds.x, ray_nds.y, -1.0, 1.0);
+        glm::vec4 ray_eye = glm::inverse(projectionMat) * ray_clip;
+        ray_eye = glm::vec4(ray_eye.x, ray_eye.y, -1.0, 0.0);
+
+        glm::vec3 ray_wor = glm::vec3(glm::inverse(camera->viewMat) * ray_eye);
+        // don't forget to normalise the vector at some point
+        ray_wor = glm::normalize(ray_wor);
+
+        glm::vec3 rayOrigin = camera->eye;
+        glm::vec3 rayEnd = rayOrigin + (20.0f * ray_wor);
+
+
+
+        std::vector<glm::vec3> tri;
+        std::vector<glm::vec3> ray;
+
+        ray.push_back(rayOrigin);
+        ray.push_back(rayEnd);
+
+        float dist = 10000;
+        int hitCount = 0;
+        glm::vec3 hitPoint;
+        for (auto& obj : pvColrObjs)
+        {
+            if (obj->drawCommand != GL_TRIANGLES)
+                continue;
+            const auto& boxVData = obj->vdPosNrmClr;
+            const auto& boxIData = obj->iData;
+            
+            for (auto i = 0; i < boxIData.size(); i += 3)
+            {
+                auto v1 = (boxVData.size() > 0) ? boxVData.at(boxIData.at(i)).pos : obj->vData.at(boxIData.at(i)).pos;
+                auto v2 = (boxVData.size() > 0) ? boxVData.at(boxIData.at(i + 1)).pos : obj->vData.at(boxIData.at(i + 1)).pos;
+                auto v3 = (boxVData.size() > 0) ? boxVData.at(boxIData.at(i + 2)).pos : obj->vData.at(boxIData.at(i + 2)).pos;
+                v1 = glm::vec3(obj->tMatrix * glm::vec4(v1, 1));
+                v2 = glm::vec3(obj->tMatrix * glm::vec4(v2, 1));
+                v3 = glm::vec3(obj->tMatrix * glm::vec4(v3, 1));
+
+                tri.push_back(v1);
+                tri.push_back(v2);
+                tri.push_back(v3);
+                glm::vec3 intr;
+                if (GLUtility::intersects3D_RayTrinagle(ray, tri, intr) == 1)
+                {
+                    obj->color = glm::vec4(Color::purple, 1.0);
+                    std::cout << intr.x << " " << intr.y << " " << intr.z << cendl;
+                    auto d = glm::distance(camera->eye, intr);
+                    if (d < dist)
+                    {
+                        dist = d;
+                        hitPoint = intr;
+                    }
+                    hitCount += 1;
+                }
+                else
+                {
+                    // blueBox->color = glm::vec4(Color::red, 1.0);
+                }
+                tri.clear();
+            }
+            if (hitCount == 0)
+            {
+                obj->color = obj->pickColor;
+            }
+        }//end of for loop
+        if (hitCount > 0)
+        {
+            fmt::print("hit point {},{},{}", hitPoint.x, hitPoint.y, hitPoint.z);
+        }
     }
 }
 
