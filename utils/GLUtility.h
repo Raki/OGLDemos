@@ -182,6 +182,8 @@ namespace GLUtility
 	std::shared_ptr<Mesh> getCube(float width, float height, float depth);
 	void fillCube(float width, float height, float depth,glm::vec3 color,glm::mat4 tMat, vector<VDPosNormColr> &vData, vector<unsigned int> &iData);
 	void fillCubeforCSG(float width, float height, float depth,glm::mat4 tMat, vector<glm::vec3>& vData, vector<unsigned int>& iData);
+	void fillStarforCSG(float radius, float thickness, vector<glm::vec3>& vData, vector<unsigned int>& iData);
+	void fillPyramidforCSG(float base, float height, vector<glm::vec3>& vData, vector<unsigned int>& iData);
 	std::shared_ptr<Mesh> getCubeVec3(float width, float height, float depth);
 	std::shared_ptr<Mesh> getBoudingBox(glm::vec3 bbMin,glm::vec3 bbMax);
 	std::shared_ptr<Mesh> getMeshFromHeightMap(std::string heightMapPath);

@@ -54,6 +54,22 @@ struct LightInfo
     float outerCutOff;
 };
 
+struct InputMesh {
+    // variables for mesh data in a format suited for MCUT
+    std::vector<uint32_t> faceSizesArray; // vertices per face
+    std::vector<uint32_t> faceIndicesArray; // face indices
+    std::vector<double> vertexCoordsArray; // vertex coords
+    uint32_t numVertices;
+    uint32_t    numFaces;
+};
+
+struct CSGResult
+{
+    std::shared_ptr<InputMesh> resMesh;
+    std::vector<glm::vec3> vCSGArr;
+    std::vector<unsigned int> iCSGArr;
+};
+
 GLFWwindow* window;
 auto closeWindow = false;
 auto capturePos = false;
@@ -104,10 +120,12 @@ LightInfo light;
 glm::mat4 uvRotMat = glm::mat4(1);
 
 float gRotation = 90;
+float xRotation = 0;
 float tLength = 0.1;
 float camSpeed = 0.1;
 const int rows = 5;
 const int cols = 5;
+
 
 #pragma endregion 
 
@@ -122,6 +140,10 @@ void setupCamera();
 void setupScene();
 void setupCSGMesh();
 void setupCSGMeshV2();
+void setupCSGMeshV3();
+void setupCSGMeshV4();
+void doCSG(std::shared_ptr<InputMesh> srcMesh, std::shared_ptr<InputMesh> cutMesh,std::string booleanOp, std::shared_ptr<CSGResult> csgResult);
+void mesh2Csg(vector<glm::vec3>& vData, vector<unsigned int>& iData, std::shared_ptr<InputMesh> csgMesh);
 std::shared_ptr<FrameBuffer> getFboMSA(std::shared_ptr<FrameBuffer> refFbo,int samples);
 void updateFrame();
 void renderFrame();
@@ -263,7 +285,8 @@ void initGL()
     glPointSize(3.0f);
     
     glViewport(0, 0, WIN_WIDTH, WIN_HEIGHT);
-    glClearColor(0.1f, 0.2f, 0.3f, 1.0f);
+    //glClearColor(0.1f, 0.2f, 0.3f, 1.0f);
+    glClearColor(0.5f,0.5f,0.5f, 1.0f);
 
     auto vsStr = Utility::readFileContents("shaders/vLights.glsl");
     vsStr = Utility::replaceStrWith("#version 460", "#version 460 \n#define PER_VERTEX_COLOR",vsStr);
@@ -365,21 +388,13 @@ void setupScene()
     std::vector<unsigned int> iData2;
     std::vector<glm::vec3> posArr;
     
-    pvColrObjs.push_back(groupObj);
+    //pvColrObjs.push_back(groupObj);
     
-    setupCSGMeshV2();
+    setupCSGMeshV4();
 }
 
 void setupCSGMesh()
 {
-    struct InputMesh {
-        // variables for mesh data in a format suited for MCUT
-        std::vector<uint32_t> faceSizesArray; // vertices per face
-        std::vector<uint32_t> faceIndicesArray; // face indices
-        std::vector<double> vertexCoordsArray; // vertex coords
-        uint32_t numVertices;
-        uint32_t    numFaces;
-    };
 
     auto mesh2Csg = [](vector<glm::vec3>& vData, vector<unsigned int>& iData,std::shared_ptr<InputMesh> csgMesh)
     {
@@ -840,25 +855,121 @@ void setupCSGMeshV2()
         GLUtility::fillCubeforCSG(2.f, 2.f, 2.f, m, vData, iData);
         mesh2Csg(vData, iData, srcMesh);
     }
-    if(false)
-    {
-        //std::vector<float> vData;
-        //std::vector<unsigned int> iData;
-        loadObj("assets/vase/estrellica.obj", srcMesh->vertexCoordsArray, srcMesh->faceIndicesArray);
-        srcMesh->numFaces = srcMesh->faceIndicesArray.size() / 3;
-        srcMesh->numVertices = srcMesh->vertexCoordsArray.size();
-        srcMesh->faceSizesArray = std::vector<uint32_t>(srcMesh->faceIndicesArray.size() / 3, 3);
-    }
+    //if(false)
+    
 
     auto cutMesh = std::make_shared<InputMesh>();
     cutMesh->fpath = "cutCube";
+    
     {
         std::vector<glm::vec3> vData;
         std::vector<unsigned int> iData;
         //auto m = glm::translate(glm::mat4(1), glm::vec3(0.2f, 0.3f, 0.4f));
-        auto m = glm::translate(glm::mat4(1), glm::vec3(0.2f, 0.5f, 0.4f))*glm::rotate(glm::mat4(1),glm::radians(45.f),GLUtility::Y_AXIS);
-        GLUtility::fillCubeforCSG(1.f, 1.f, 1.f, m, vData, iData);
+        auto m = glm::translate(glm::mat4(1), glm::vec3(0.4f, 0.5f, 0.4f))*glm::rotate(glm::mat4(1),glm::radians(45.f),GLUtility::Y_AXIS);
+        GLUtility::fillCubeforCSG(1.5f, 1.5f, 1.5f, m, vData, iData);
         mesh2Csg(vData, iData, cutMesh);
+    }
+
+    if(false)
+    {
+        std::vector<glm::vec3> vData;
+        std::vector<unsigned int> iData;
+        GLUtility::fillStarforCSG(1, 0.4, vData, iData);
+
+        auto tMat = glm::translate(glm::mat4(1), glm::vec3(1, 0.4f, 0));
+        std::vector<glm::vec3> vArr(vData.size()), nArr(vData.size());
+
+        for (size_t i = 0; i < vData.size(); i += 1)
+        {
+            vArr.at(i) = glm::vec3(tMat * glm::vec4(vData.at(i), 1.f));
+        }
+
+        //for (size_t i = 0; i < iData.size(); i += 3)
+        //{
+        //    auto ind0 = iData.at(i);
+        //    auto ind1 = iData.at(i+1);
+        //    auto ind2 = iData.at(i+2);
+
+        //    auto v0 = vArr.at(ind0);// glm::vec3(vData.at(ind0 * 3), vData.at((ind0 * 3) + 1), vData.at((ind0 * 3) + 2));
+        //    auto v1 = vArr.at(ind1);// glm::vec3(vData.at(ind1 * 3), vData.at((ind1 * 3) + 1), vData.at((ind1 * 3) + 2));
+        //    auto v2 = vArr.at(ind2);// glm::vec3(vData.at(ind2 * 3), vData.at((ind2 * 3) + 1), vData.at((ind2 * 3) + 2));
+        //    auto n = glm::normalize(GLUtility::getNormal(v0,v1,v2));
+        //    
+        //    nArr.at(ind0) += n;
+        //    nArr.at(ind1) += n;
+        //    nArr.at(ind2) += n;
+        //    nArr.at(ind0) /= 2.f;
+        //    nArr.at(ind1) /= 2.f;
+        //    nArr.at(ind2) /= 2.f;
+        //}
+
+        //for (size_t i = 0; i < nArr.size(); i += 1)
+        //{
+        //    nArr.at(i) = glm::normalize(nArr.at(i));
+        //}
+
+        //std::vector<GLUtility::VDPosNormColr> vertData;
+        //for (size_t i = 0; i < vArr.size(); i += 1)
+        //{
+        //    vertData.push_back({vArr.at(i),nArr.at(i),glm::vec3(0.3f,0.4f,1.0f)});
+        //}
+        //auto mesh = std::make_shared<Mesh>(vertData, iData);
+        //mesh->color = glm::vec4(Color::getRandomColor(), 1);
+        //mesh->tMatrix = glm::mat4(1);
+        //mesh->drawCommand = GL_TRIANGLES;
+        //pvColrObjs.push_back(mesh);
+        mesh2Csg(vArr, iData, cutMesh);
+        cutMesh->numFaces = cutMesh->faceIndicesArray.size() / 3;
+        cutMesh->numVertices = cutMesh->vertexCoordsArray.size();
+        cutMesh->faceSizesArray = std::vector<uint32_t>(cutMesh->faceIndicesArray.size() / 3, 3);
+    }
+    if(false)
+    {
+        std::vector<double> vData;
+        std::vector<VDPosNormColr> vertData;
+        std::vector<unsigned int> iData;
+        loadObj("assets/vase/start.obj", vData, iData);
+
+        auto tMat = glm::translate(glm::mat4(1), glm::vec3(1, 0.8f, 0)) * glm::scale(glm::mat4(1), glm::vec3(0.1));
+        std::vector<glm::vec3> vArr(iData.size()), nArr(iData.size());
+
+        for (size_t i = 0; i < vData.size(); i += 3)
+        {
+            vArr.at(i / 3) = glm::vec3(tMat * glm::vec4(vData.at(i), vData.at(i + 1), vData.at(i + 2), 1.f));
+        }
+
+        //for (size_t i = 0; i < iData.size(); i += 3)
+        //{
+        //    auto ind0 = iData.at(i);
+        //    auto ind1 = iData.at(i+1);
+        //    auto ind2 = iData.at(i+2);
+
+        //    auto v0 = vArr.at(ind0);// glm::vec3(vData.at(ind0 * 3), vData.at((ind0 * 3) + 1), vData.at((ind0 * 3) + 2));
+        //    auto v1 = vArr.at(ind1);// glm::vec3(vData.at(ind1 * 3), vData.at((ind1 * 3) + 1), vData.at((ind1 * 3) + 2));
+        //    auto v2 = vArr.at(ind2);// glm::vec3(vData.at(ind2 * 3), vData.at((ind2 * 3) + 1), vData.at((ind2 * 3) + 2));
+        //    auto n = glm::normalize(GLUtility::getNormal(v0,v1,v2));
+        //    nArr.at(ind0) += n;
+        //    nArr.at(ind1) += n;
+        //    nArr.at(ind2) += n;
+        //    nArr.at(ind0) /= 2.f;
+        //    nArr.at(ind1) /= 2.f;
+        //    nArr.at(ind2) /= 2.f;
+        //}
+
+        //for (size_t i = 0; i < vArr.size(); i += 1)
+        //{
+        //    vertData.push_back({vArr.at(i),nArr.at(i),glm::vec3(0.3f,0.4f,1.0f)});
+        //}
+        //auto mesh = std::make_shared<Mesh>(vertData, iData);
+        //mesh->color = glm::vec4(Color::getRandomColor(), 1);
+        //mesh->tMatrix = glm::mat4(1);
+        //mesh->drawCommand = GL_TRIANGLES;
+        //pvColrObjs.push_back(mesh);
+
+        mesh2Csg(vArr, iData, cutMesh);
+        cutMesh->numFaces = cutMesh->faceIndicesArray.size() / 3;
+        cutMesh->numVertices = cutMesh->vertexCoordsArray.size();
+        cutMesh->faceSizesArray = std::vector<uint32_t>(cutMesh->faceIndicesArray.size() / 3, 3);
     }
 
     std::string boolOpStr="A_NOT_B";
@@ -1100,6 +1211,564 @@ void setupCSGMeshV2()
     }
 }
 
+void setupCSGMeshV3()
+{
+    auto srcMesh = std::make_shared<InputMesh>();
+    {
+        std::vector<glm::vec3> vData;
+        std::vector<unsigned int> iData;
+        auto m = glm::mat4(1);
+        GLUtility::fillCubeforCSG(2.f, 2.f, 2.f, m, vData, iData);
+        mesh2Csg(vData, iData, srcMesh);
+    }
+
+
+    auto cutMesh = std::make_shared<InputMesh>();
+    {
+        std::vector<glm::vec3> vData;
+        std::vector<unsigned int> iData;
+        auto m = glm::translate(glm::mat4(1), glm::vec3(0.f, 0.f, 0.95f));
+        //auto m = glm::translate(glm::mat4(1), glm::vec3(0.4f, 0.5f, 0.4f)) * glm::rotate(glm::mat4(1), glm::radians(45.f), GLUtility::Y_AXIS);
+        GLUtility::fillCubeforCSG(0.5f, 0.5f, 0.2f, m, vData, iData);
+        mesh2Csg(vData, iData, cutMesh);
+    }
+
+    std::string boolOpStr = "UNION";
+    //const char* argv = "A_NOT_B";
+    //if (strcmp(argv, "-u") == 0) {
+    //    boolOpStr = "UNION";
+    //}
+    //else if (strcmp(argv, "-i") == 0) {
+    //    boolOpStr = "INTERSECTION";
+    //}
+    //else if (strcmp(argv, "-ds") == 0) {
+    //    boolOpStr = "A_NOT_B";
+    //}
+    //else if (strcmp(argv, "-dc") == 0) {
+    //    boolOpStr = "B_NOT_A";
+    //}
+    //else {
+    //    fprintf(stderr, "invalid boolOp argument value\n");
+    //    //return 1;
+    //}
+
+
+    // create a context
+    // -------------------
+    McContext context = MC_NULL_HANDLE;
+    McResult err = mcCreateContext(&context, MC_DEBUG);
+    my_assert(err == MC_NO_ERROR);
+
+    //  do the cutting (boolean ops)
+    // -----------------------------
+
+
+    // We can either let MCUT compute all possible meshes (including patches etc.), or we can
+    // constrain the library to compute exactly the boolean op mesh we want. This 'constrained' case
+    // is done with the following flags.
+    // NOTE: you can extend these flags by bitwise ORing with additional flags (see `McDispatchFlags' in mcut.h)
+    const std::map<std::string, McFlags> booleanOps = {
+        { "A_NOT_B", MC_DISPATCH_FILTER_FRAGMENT_SEALING_INSIDE | MC_DISPATCH_FILTER_FRAGMENT_LOCATION_ABOVE },
+        { "B_NOT_A", MC_DISPATCH_FILTER_FRAGMENT_SEALING_OUTSIDE | MC_DISPATCH_FILTER_FRAGMENT_LOCATION_BELOW },
+        { "UNION", MC_DISPATCH_FILTER_FRAGMENT_SEALING_OUTSIDE | MC_DISPATCH_FILTER_FRAGMENT_LOCATION_ABOVE },
+        { "INTERSECTION", MC_DISPATCH_FILTER_FRAGMENT_SEALING_INSIDE | MC_DISPATCH_FILTER_FRAGMENT_LOCATION_BELOW }
+    };
+
+    for (std::map<std::string, McFlags>::const_iterator boolOpIter = booleanOps.cbegin(); boolOpIter != booleanOps.cend(); ++boolOpIter) {
+        if (boolOpIter->first != boolOpStr && boolOpStr != "*") {
+            continue;
+        }
+
+        const McFlags boolOpFlags = boolOpIter->second;
+        const std::string boolOpName = boolOpIter->first;
+
+        printf("compute %s\n", boolOpName.c_str());
+
+        auto beginTime = std::chrono::system_clock::now();
+        err = mcDispatch(
+            context,
+            MC_DISPATCH_VERTEX_ARRAY_DOUBLE | // vertices are in array of doubles
+            MC_DISPATCH_ENFORCE_GENERAL_POSITION | // perturb if necessary
+            boolOpFlags, // filter flags which specify the type of output we want
+            // source mesh
+            reinterpret_cast<const void*>(srcMesh->vertexCoordsArray.data()),
+            reinterpret_cast<const uint32_t*>(srcMesh->faceIndicesArray.data()),
+            srcMesh->faceSizesArray.data(),
+            static_cast<uint32_t>(srcMesh->vertexCoordsArray.size() / 3),
+            static_cast<uint32_t>(srcMesh->faceSizesArray.size()),
+            // cut mesh
+            reinterpret_cast<const void*>(cutMesh->vertexCoordsArray.data()),
+            cutMesh->faceIndicesArray.data(),
+            cutMesh->faceSizesArray.data(),
+            static_cast<uint32_t>(cutMesh->vertexCoordsArray.size() / 3),
+            static_cast<uint32_t>(cutMesh->faceSizesArray.size()));
+
+        my_assert(err == MC_NO_ERROR);
+
+        // query the number of available connected component
+        // --------------------------------------------------
+        uint32_t numConnComps;
+        err = mcGetConnectedComponents(context, MC_CONNECTED_COMPONENT_TYPE_FRAGMENT, 0, NULL, &numConnComps);
+        my_assert(err == MC_NO_ERROR);
+
+        printf("connected components: %d\n", (int)numConnComps);
+
+        if (numConnComps == 0) {
+            fprintf(stdout, "no connected components found\n");
+            exit(0);
+        }
+
+        // my_assert(numConnComps == 1); // exactly 1 result (for this example)
+
+        std::vector<McConnectedComponent> connectedComponents(numConnComps, MC_NULL_HANDLE);
+        connectedComponents.resize(numConnComps);
+        err = mcGetConnectedComponents(context, MC_CONNECTED_COMPONENT_TYPE_FRAGMENT, (uint32_t)connectedComponents.size(), connectedComponents.data(), NULL);
+
+        my_assert(err == MC_NO_ERROR);
+
+        // query the data of each connected component from MCUT
+        // -------------------------------------------------------
+
+        McConnectedComponent connComp = connectedComponents[0];
+
+        // query the vertices
+        // ----------------------
+
+        uint64_t numBytes = 0;
+        err = mcGetConnectedComponentData(context, connComp, MC_CONNECTED_COMPONENT_DATA_VERTEX_DOUBLE, 0, NULL, &numBytes);
+        my_assert(err == MC_NO_ERROR);
+        uint32_t ccVertexCount = (uint32_t)(numBytes / (sizeof(double) * 3));
+        std::vector<double> ccVertices((uint64_t)ccVertexCount * 3u, 0);
+        err = mcGetConnectedComponentData(context, connComp, MC_CONNECTED_COMPONENT_DATA_VERTEX_DOUBLE, numBytes, (void*)ccVertices.data(), NULL);
+        my_assert(err == MC_NO_ERROR);
+
+        // query the faces
+        // -------------------
+        numBytes = 0;
+
+        err = mcGetConnectedComponentData(context, connComp, MC_CONNECTED_COMPONENT_DATA_FACE_TRIANGULATION, 0, NULL, &numBytes);
+        my_assert(err == MC_NO_ERROR);
+        std::vector<uint32_t> ccFaceIndices(numBytes / sizeof(uint32_t), 0);
+        err = mcGetConnectedComponentData(context, connComp, MC_CONNECTED_COMPONENT_DATA_FACE_TRIANGULATION, numBytes, ccFaceIndices.data(), NULL);
+        my_assert(err == MC_NO_ERROR);
+
+        std::vector<uint32_t> faceSizes(ccFaceIndices.size() / 3, 3);
+
+        const uint32_t ccFaceCount = static_cast<uint32_t>(faceSizes.size());
+
+        /// ------------------------------------------------------------------------------------
+
+        // Here we show, how to know when connected components, pertain particular boolean operations.
+
+        McPatchLocation patchLocation = (McPatchLocation)0;
+
+        err = mcGetConnectedComponentData(context, connComp, MC_CONNECTED_COMPONENT_DATA_PATCH_LOCATION, sizeof(McPatchLocation), &patchLocation, NULL);
+        my_assert(err == MC_NO_ERROR);
+
+        McFragmentLocation fragmentLocation = (McFragmentLocation)0;
+        err = mcGetConnectedComponentData(context, connComp, MC_CONNECTED_COMPONENT_DATA_FRAGMENT_LOCATION, sizeof(McFragmentLocation), &fragmentLocation, NULL);
+        my_assert(err == MC_NO_ERROR);
+
+        // save cc mesh to .obj file
+        // -------------------------
+
+        auto extract_fname = [](const std::string& full_path) {
+            // get filename
+            std::string base_filename = full_path.substr(full_path.find_last_of("/\\") + 1);
+            // remove extension from filename
+            std::string::size_type const p(base_filename.find_last_of('.'));
+            std::string file_without_extension = base_filename.substr(0, p);
+            return file_without_extension;
+        };
+
+        //std::string fpath(OUTPUT_DIR "/" + extract_fname(srcMesh->fpath) + "_" + extract_fname(cutMesh->fpath) + "_" + boolOpName + ".obj");
+
+        //printf("write file: %s\n", fpath.c_str());
+
+        //std::ofstream file(fpath);
+
+        std::vector<glm::vec3>vCSGArr;
+        // write vertices and normals
+        for (uint32_t i = 0; i < ccVertexCount; ++i) {
+            double x = ccVertices[(uint64_t)i * 3 + 0];
+            double y = ccVertices[(uint64_t)i * 3 + 1];
+            double z = ccVertices[(uint64_t)i * 3 + 2];
+            //file << "v " << std::setprecision(std::numeric_limits<long double>::digits10 + 1) << x << " " << y << " " << z << std::endl;
+            vCSGArr.push_back(glm::vec3(x, y, z));
+        }
+
+        int faceVertexOffsetBase = 0;
+
+        std::vector<unsigned int>iCSGArr;
+        // for each face in CC
+        for (uint32_t f = 0; f < ccFaceCount; ++f) {
+            bool reverseWindingOrder = (fragmentLocation == MC_FRAGMENT_LOCATION_BELOW) && (patchLocation == MC_PATCH_LOCATION_OUTSIDE);
+            int faceSize = faceSizes.at(f);
+            //file << "f ";
+            // for each vertex in face
+            for (int v = (reverseWindingOrder ? (faceSize - 1) : 0);
+                (reverseWindingOrder ? (v >= 0) : (v < faceSize));
+                v += (reverseWindingOrder ? -1 : 1)) {
+                const int ccVertexIdx = ccFaceIndices[(uint64_t)faceVertexOffsetBase + v];
+                //file << (ccVertexIdx + 1) << " ";
+                iCSGArr.push_back(ccVertexIdx);
+            } // for (int v = 0; v < faceSize; ++v) {
+            //file << std::endl;
+
+            faceVertexOffsetBase += faceSize;
+        }
+
+        std::vector<glm::vec3> vArr;
+        std::vector<glm::vec3> nArr(iCSGArr.size());
+        std::vector<unsigned int> iArr;
+
+        for (size_t ind = 0; ind < iCSGArr.size(); ind += 3)
+        {
+            auto ind1 = ind + 1;
+            auto ind2 = ind + 2;
+            vArr.push_back(vCSGArr.at(iCSGArr.at(ind)));
+            vArr.push_back(vCSGArr.at(iCSGArr.at(ind1)));
+            vArr.push_back(vCSGArr.at(iCSGArr.at(ind2)));
+            auto n = glm::normalize(GLUtility::getNormal(vCSGArr.at(iCSGArr.at(ind)), vCSGArr.at(iCSGArr.at(ind1)), vCSGArr.at(iCSGArr.at(ind2))));
+            nArr.at(vArr.size() - 1) += n;
+            nArr.at(vArr.size() - 2) += n;
+            nArr.at(vArr.size() - 3) += n;
+            nArr.at(vArr.size() - 1) /= 2.f;
+            nArr.at(vArr.size() - 2) /= 2.f;
+            nArr.at(vArr.size() - 3) /= 2.f;
+            iArr.push_back(iArr.size());
+            iArr.push_back(iArr.size());
+            iArr.push_back(iArr.size());
+        }
+
+        std::vector<GLUtility::VDPosNormColr> vData;
+        for (size_t ind = 0; ind < vArr.size(); ind++)
+        {
+            vData.push_back({ vArr.at(ind),nArr.at(ind),glm::vec3(0.5f,0.5f,1.0f) });
+        }
+
+        auto mesh = std::make_shared<Mesh>(vData, iArr);
+        mesh->tMatrix = glm::mat4(1);
+        mesh->drawCommand = GL_TRIANGLES;
+        pvColrObjs.push_back(mesh);
+        auto endTime = std::chrono::system_clock::now();
+        fmt::print("Time take for mesh generation {} milli sec\n", std::chrono::duration_cast<std::chrono::milliseconds>(endTime - beginTime).count());
+
+        // 6. free connected component data
+        // --------------------------------
+        err = mcReleaseConnectedComponents(context, (uint32_t)connectedComponents.size(), connectedComponents.data());
+        my_assert(err == MC_NO_ERROR);
+    }
+
+
+    // 7. destroy context
+    // ------------------
+    err = mcReleaseContext(context);
+
+    if (err != MC_NO_ERROR)
+    {
+        fprintf(stderr, "mcReleaseContext failed (err=%d)\n", (int)err);
+        exit(1);
+    }
+}
+
+void setupCSGMeshV4()
+{
+    auto srcMesh = std::make_shared<InputMesh>();
+    {
+        std::vector<glm::vec3> vData;
+        std::vector<unsigned int> iData;
+        auto m = glm::mat4(1);
+        GLUtility::fillCubeforCSG(2.f, 2.f, 2.f, m, vData, iData);
+        mesh2Csg(vData, iData, srcMesh);
+    }
+
+
+    auto cutMesh = std::make_shared<InputMesh>();
+    {
+        std::vector<glm::vec3> vData;
+        std::vector<unsigned int> iData;
+        //auto m = glm::translate(glm::mat4(1), glm::vec3(0.f, 0.f, 0.95f));
+        auto m = glm::translate(glm::mat4(1), glm::vec3(0.f, 0.f, 0.95f)) * glm::rotate(glm::mat4(1), glm::radians(45.f), GLUtility::Y_AXIS);
+        GLUtility::fillCubeforCSG(0.9f, 0.9f, 0.9f, m, vData, iData);
+        mesh2Csg(vData, iData, cutMesh);
+    }
+
+    auto cutMesh2 = std::make_shared<InputMesh>();
+    {
+        std::vector<glm::vec3> vData;
+        std::vector<unsigned int> iData;
+        //auto m = glm::translate(glm::mat4(1), glm::vec3(0.3f, 0.3f, 0.95f));
+        auto m = glm::translate(glm::mat4(1), glm::vec3(0.3f, 0.6f, 0.95f)) * glm::rotate(glm::mat4(1), glm::radians(15.f), GLUtility::Y_AXIS);
+        GLUtility::fillCubeforCSG(0.9f, 0.9f, 0.9f, m, vData, iData);
+        mesh2Csg(vData, iData, cutMesh2);
+    }
+
+    auto csgRes = std::make_shared<CSGResult>();
+    doCSG(srcMesh, cutMesh, "UNION", csgRes);
+    doCSG(csgRes->resMesh, cutMesh2, "A_NOT_B", csgRes);
+
+
+    std::vector<glm::vec3> vArr;
+    std::vector<glm::vec3> nArr(csgRes->iCSGArr.size());
+    std::vector<unsigned int> iArr;
+
+    for (size_t ind = 0; ind < csgRes->iCSGArr.size(); ind += 3)
+    {
+        auto ind1 = ind + 1;
+        auto ind2 = ind + 2;
+        vArr.push_back(csgRes->vCSGArr.at(csgRes->iCSGArr.at(ind)));
+        vArr.push_back(csgRes->vCSGArr.at(csgRes->iCSGArr.at(ind1)));
+        vArr.push_back(csgRes->vCSGArr.at(csgRes->iCSGArr.at(ind2)));
+        auto n = glm::normalize(GLUtility::getNormal(csgRes->vCSGArr.at(csgRes->iCSGArr.at(ind)), csgRes->vCSGArr.at(csgRes->iCSGArr.at(ind1)), csgRes->vCSGArr.at(csgRes->iCSGArr.at(ind2))));
+        nArr.at(vArr.size() - 1) += n;
+        nArr.at(vArr.size() - 2) += n;
+        nArr.at(vArr.size() - 3) += n;
+        nArr.at(vArr.size() - 1) /= 2.f;
+        nArr.at(vArr.size() - 2) /= 2.f;
+        nArr.at(vArr.size() - 3) /= 2.f;
+        iArr.push_back(iArr.size());
+        iArr.push_back(iArr.size());
+        iArr.push_back(iArr.size());
+    }
+
+    std::vector<GLUtility::VDPosNormColr> vData;
+    for (size_t ind = 0; ind < vArr.size(); ind++)
+    {
+        vData.push_back({ vArr.at(ind),nArr.at(ind),glm::vec3(0.5f,0.5f,1.0f) });
+    }
+
+    auto mesh = std::make_shared<Mesh>(vData, iArr);
+    mesh->tMatrix = glm::mat4(1);
+    mesh->drawCommand = GL_TRIANGLES;
+    pvColrObjs.push_back(mesh);
+}
+
+void doCSG(std::shared_ptr<InputMesh> srcMesh, std::shared_ptr<InputMesh> cutMesh, std::string booleanOp, std::shared_ptr<CSGResult> csgResult)
+{
+    auto mesh2Csg = [](vector<glm::vec3>& vData, vector<unsigned int>& iData, std::shared_ptr<InputMesh> csgMesh)
+    {
+        for (const auto& vert : vData)
+        {
+            csgMesh->vertexCoordsArray.push_back(vert.x);
+            csgMesh->vertexCoordsArray.push_back(vert.y);
+            csgMesh->vertexCoordsArray.push_back(vert.z);
+        }
+        csgMesh->faceIndicesArray.assign(iData.begin(), iData.end());
+        csgMesh->faceSizesArray = std::vector<uint32_t>(iData.size() / 3, 3);
+        csgMesh->numVertices = vData.size();
+        csgMesh->numFaces = iData.size() / 3;
+    };
+    std::string boolOpStr = booleanOp;
+    
+
+    // create a context
+    // -------------------
+    McContext context = MC_NULL_HANDLE;
+    McResult err = mcCreateContext(&context, MC_DEBUG);
+    my_assert(err == MC_NO_ERROR);
+
+    //  do the cutting (boolean ops)
+    // -----------------------------
+
+
+    // We can either let MCUT compute all possible meshes (including patches etc.), or we can
+    // constrain the library to compute exactly the boolean op mesh we want. This 'constrained' case
+    // is done with the following flags.
+    // NOTE: you can extend these flags by bitwise ORing with additional flags (see `McDispatchFlags' in mcut.h)
+    const std::map<std::string, McFlags> booleanOps = {
+        { "A_NOT_B", MC_DISPATCH_FILTER_FRAGMENT_SEALING_INSIDE | MC_DISPATCH_FILTER_FRAGMENT_LOCATION_ABOVE },
+        { "B_NOT_A", MC_DISPATCH_FILTER_FRAGMENT_SEALING_OUTSIDE | MC_DISPATCH_FILTER_FRAGMENT_LOCATION_BELOW },
+        { "UNION", MC_DISPATCH_FILTER_FRAGMENT_SEALING_OUTSIDE | MC_DISPATCH_FILTER_FRAGMENT_LOCATION_ABOVE },
+        { "INTERSECTION", MC_DISPATCH_FILTER_FRAGMENT_SEALING_INSIDE | MC_DISPATCH_FILTER_FRAGMENT_LOCATION_BELOW }
+    };
+
+    for (std::map<std::string, McFlags>::const_iterator boolOpIter = booleanOps.cbegin(); boolOpIter != booleanOps.cend(); ++boolOpIter) {
+        if (boolOpIter->first != boolOpStr && boolOpStr != "*") {
+            continue;
+        }
+
+        const McFlags boolOpFlags = boolOpIter->second;
+        const std::string boolOpName = boolOpIter->first;
+
+        printf("compute %s\n", boolOpName.c_str());
+
+        auto beginTime = std::chrono::system_clock::now();
+        err = mcDispatch(
+            context,
+            MC_DISPATCH_VERTEX_ARRAY_DOUBLE | // vertices are in array of doubles
+            MC_DISPATCH_ENFORCE_GENERAL_POSITION | // perturb if necessary
+            boolOpFlags, // filter flags which specify the type of output we want
+            // source mesh
+            reinterpret_cast<const void*>(srcMesh->vertexCoordsArray.data()),
+            reinterpret_cast<const uint32_t*>(srcMesh->faceIndicesArray.data()),
+            srcMesh->faceSizesArray.data(),
+            static_cast<uint32_t>(srcMesh->vertexCoordsArray.size() / 3),
+            static_cast<uint32_t>(srcMesh->faceSizesArray.size()),
+            // cut mesh
+            reinterpret_cast<const void*>(cutMesh->vertexCoordsArray.data()),
+            cutMesh->faceIndicesArray.data(),
+            cutMesh->faceSizesArray.data(),
+            static_cast<uint32_t>(cutMesh->vertexCoordsArray.size() / 3),
+            static_cast<uint32_t>(cutMesh->faceSizesArray.size()));
+
+        my_assert(err == MC_NO_ERROR);
+
+        // query the number of available connected component
+        // --------------------------------------------------
+        uint32_t numConnComps;
+        err = mcGetConnectedComponents(context, MC_CONNECTED_COMPONENT_TYPE_FRAGMENT, 0, NULL, &numConnComps);
+        my_assert(err == MC_NO_ERROR);
+
+        printf("connected components: %d\n", (int)numConnComps);
+
+        if (numConnComps == 0) {
+            fprintf(stdout, "no connected components found\n");
+            exit(0);
+        }
+
+        // my_assert(numConnComps == 1); // exactly 1 result (for this example)
+
+        std::vector<McConnectedComponent> connectedComponents(numConnComps, MC_NULL_HANDLE);
+        connectedComponents.resize(numConnComps);
+        err = mcGetConnectedComponents(context, MC_CONNECTED_COMPONENT_TYPE_FRAGMENT, (uint32_t)connectedComponents.size(), connectedComponents.data(), NULL);
+
+        my_assert(err == MC_NO_ERROR);
+
+        // query the data of each connected component from MCUT
+        // -------------------------------------------------------
+
+        McConnectedComponent connComp = connectedComponents[0];
+
+        // query the vertices
+        // ----------------------
+
+        uint64_t numBytes = 0;
+        err = mcGetConnectedComponentData(context, connComp, MC_CONNECTED_COMPONENT_DATA_VERTEX_DOUBLE, 0, NULL, &numBytes);
+        my_assert(err == MC_NO_ERROR);
+        uint32_t ccVertexCount = (uint32_t)(numBytes / (sizeof(double) * 3));
+        std::vector<double> ccVertices((uint64_t)ccVertexCount * 3u, 0);
+        err = mcGetConnectedComponentData(context, connComp, MC_CONNECTED_COMPONENT_DATA_VERTEX_DOUBLE, numBytes, (void*)ccVertices.data(), NULL);
+        my_assert(err == MC_NO_ERROR);
+
+        // query the faces
+        // -------------------
+        numBytes = 0;
+
+        err = mcGetConnectedComponentData(context, connComp, MC_CONNECTED_COMPONENT_DATA_FACE_TRIANGULATION, 0, NULL, &numBytes);
+        my_assert(err == MC_NO_ERROR);
+        std::vector<uint32_t> ccFaceIndices(numBytes / sizeof(uint32_t), 0);
+        err = mcGetConnectedComponentData(context, connComp, MC_CONNECTED_COMPONENT_DATA_FACE_TRIANGULATION, numBytes, ccFaceIndices.data(), NULL);
+        my_assert(err == MC_NO_ERROR);
+
+        std::vector<uint32_t> faceSizes(ccFaceIndices.size() / 3, 3);
+
+        const uint32_t ccFaceCount = static_cast<uint32_t>(faceSizes.size());
+
+        /// ------------------------------------------------------------------------------------
+
+        // Here we show, how to know when connected components, pertain particular boolean operations.
+
+        McPatchLocation patchLocation = (McPatchLocation)0;
+
+        err = mcGetConnectedComponentData(context, connComp, MC_CONNECTED_COMPONENT_DATA_PATCH_LOCATION, sizeof(McPatchLocation), &patchLocation, NULL);
+        my_assert(err == MC_NO_ERROR);
+
+        McFragmentLocation fragmentLocation = (McFragmentLocation)0;
+        err = mcGetConnectedComponentData(context, connComp, MC_CONNECTED_COMPONENT_DATA_FRAGMENT_LOCATION, sizeof(McFragmentLocation), &fragmentLocation, NULL);
+        my_assert(err == MC_NO_ERROR);
+
+        // save cc mesh to .obj file
+        // -------------------------
+
+        auto extract_fname = [](const std::string& full_path) {
+            // get filename
+            std::string base_filename = full_path.substr(full_path.find_last_of("/\\") + 1);
+            // remove extension from filename
+            std::string::size_type const p(base_filename.find_last_of('.'));
+            std::string file_without_extension = base_filename.substr(0, p);
+            return file_without_extension;
+        };
+
+        //std::string fpath(OUTPUT_DIR "/" + extract_fname(srcMesh->fpath) + "_" + extract_fname(cutMesh->fpath) + "_" + boolOpName + ".obj");
+
+        //printf("write file: %s\n", fpath.c_str());
+
+        //std::ofstream file(fpath);
+
+        std::vector<glm::vec3>vCSGArr;
+        // write vertices and normals
+        for (uint32_t i = 0; i < ccVertexCount; ++i) {
+            double x = ccVertices[(uint64_t)i * 3 + 0];
+            double y = ccVertices[(uint64_t)i * 3 + 1];
+            double z = ccVertices[(uint64_t)i * 3 + 2];
+            //file << "v " << std::setprecision(std::numeric_limits<long double>::digits10 + 1) << x << " " << y << " " << z << std::endl;
+            vCSGArr.push_back(glm::vec3(x, y, z));
+        }
+
+        int faceVertexOffsetBase = 0;
+
+        std::vector<unsigned int>iCSGArr;
+        // for each face in CC
+        for (uint32_t f = 0; f < ccFaceCount; ++f) {
+            bool reverseWindingOrder = (fragmentLocation == MC_FRAGMENT_LOCATION_BELOW) && (patchLocation == MC_PATCH_LOCATION_OUTSIDE);
+            int faceSize = faceSizes.at(f);
+            //file << "f ";
+            // for each vertex in face
+            for (int v = (reverseWindingOrder ? (faceSize - 1) : 0);
+                (reverseWindingOrder ? (v >= 0) : (v < faceSize));
+                v += (reverseWindingOrder ? -1 : 1)) {
+                const int ccVertexIdx = ccFaceIndices[(uint64_t)faceVertexOffsetBase + v];
+                //file << (ccVertexIdx + 1) << " ";
+                iCSGArr.push_back(ccVertexIdx);
+            } // for (int v = 0; v < faceSize; ++v) {
+            //file << std::endl;
+
+            faceVertexOffsetBase += faceSize;
+        }
+
+        csgResult->vCSGArr = vCSGArr;
+        csgResult->iCSGArr = iCSGArr;
+
+        auto resMesh = std::make_shared<InputMesh>();
+        mesh2Csg(vCSGArr, iCSGArr, resMesh);
+        csgResult->resMesh = resMesh;
+       
+        auto endTime = std::chrono::system_clock::now();
+        fmt::print("Time take for mesh generation {} milli sec\n", std::chrono::duration_cast<std::chrono::milliseconds>(endTime - beginTime).count());
+
+        // 6. free connected component data
+        // --------------------------------
+        err = mcReleaseConnectedComponents(context, (uint32_t)connectedComponents.size(), connectedComponents.data());
+        my_assert(err == MC_NO_ERROR);
+    }
+
+
+    // 7. destroy context
+    // ------------------
+    err = mcReleaseContext(context);
+
+    if (err != MC_NO_ERROR)
+    {
+        fprintf(stderr, "mcReleaseContext failed (err=%d)\n", (int)err);
+        exit(1);
+    }
+}
+
+void mesh2Csg(vector<glm::vec3>& vData, vector<unsigned int>& iData, std::shared_ptr<InputMesh> csgMesh)
+{
+    for (const auto& vert : vData)
+    {
+        csgMesh->vertexCoordsArray.push_back(vert.x);
+        csgMesh->vertexCoordsArray.push_back(vert.y);
+        csgMesh->vertexCoordsArray.push_back(vert.z);
+    }
+    csgMesh->faceIndicesArray.assign(iData.begin(), iData.end());
+    csgMesh->faceSizesArray = std::vector<uint32_t>(iData.size() / 3, 3);
+    csgMesh->numVertices = vData.size();
+    csgMesh->numFaces = iData.size() / 3;
+}
+
 std::shared_ptr<FrameBuffer> getFboMSA(std::shared_ptr<FrameBuffer> refFbo, int samples)
 {
     auto layer = std::make_shared<FrameBuffer>();
@@ -1159,7 +1828,7 @@ void updateFrame()
     
     lBox->tMatrix = glm::translate(glm::mat4(1), light.position);
     camera->orbitY(glm::radians(gRotation));
-
+    globalModelMat = glm::rotate(glm::mat4(1),glm::radians(xRotation),GLUtility::X_AXIS);
 }
 
 void renderFrame()
@@ -1245,6 +1914,7 @@ void renderImgui()
         ImGui::Text("Use UP & DOWN arrows for zoom-In&Out");
         ImGui::SliderFloat("Norm Distance", &tLength, 0, 1);
         ImGui::SliderFloat("Scene Y Rotation", &gRotation, 0, 360);
+        ImGui::SliderFloat("Scene X Rotation", &xRotation, -180, 180);
         //ImGui::Text("Use Lef mouse click to pick triangle");
 
         ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
@@ -1255,7 +1925,7 @@ void renderImgui()
 
     {
         ImGui::Begin("Light params");
-        ImGui::SliderFloat3("Position", &light.position[0], - rows / 2.0f, cols / 2.0f);
+        ImGui::SliderFloat3("Position", &light.position[0], -8.0f, 8.0f);
         ImGui::SliderFloat3("Diffuse", &light.diffuse[0], 0, 1);
         
         ImGui::SliderFloat("Cam speed", &camSpeed, 0, 5);
