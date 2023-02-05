@@ -585,29 +585,58 @@ std::shared_ptr<Mesh> getMeshfromCSG(std::shared_ptr<CSGResult> csgRes)
     std::vector<glm::vec3> nArr(csgRes->iCSGArr.size());
     std::vector<unsigned int> iArr;
 
-    for (size_t ind = 0; ind < csgRes->iCSGArr.size(); ind += 3)
-    {
-        auto ind1 = ind + 1;
-        auto ind2 = ind + 2;
-        vArr.push_back(csgRes->vCSGArr.at(csgRes->iCSGArr.at(ind)));
-        vArr.push_back(csgRes->vCSGArr.at(csgRes->iCSGArr.at(ind1)));
-        vArr.push_back(csgRes->vCSGArr.at(csgRes->iCSGArr.at(ind2)));
-        auto n = glm::normalize(GLUtility::getNormal(csgRes->vCSGArr.at(csgRes->iCSGArr.at(ind)), csgRes->vCSGArr.at(csgRes->iCSGArr.at(ind1)), csgRes->vCSGArr.at(csgRes->iCSGArr.at(ind2))));
-        nArr.at(vArr.size() - 1) += n;
-        nArr.at(vArr.size() - 2) += n;
-        nArr.at(vArr.size() - 3) += n;
-        nArr.at(vArr.size() - 1) /= 2.f;
-        nArr.at(vArr.size() - 2) /= 2.f;
-        nArr.at(vArr.size() - 3) /= 2.f;
-        iArr.push_back(iArr.size());
-        iArr.push_back(iArr.size());
-        iArr.push_back(iArr.size());
-    }
+    bool perFaceNormal = true;
 
+    if (perFaceNormal)
+    {
+        for (size_t ind = 0; ind < csgRes->iCSGArr.size(); ind += 3)
+        {
+            auto ind1 = ind + 1;
+            auto ind2 = ind + 2;
+            vArr.push_back(csgRes->vCSGArr.at(csgRes->iCSGArr.at(ind)));
+            vArr.push_back(csgRes->vCSGArr.at(csgRes->iCSGArr.at(ind1)));
+            vArr.push_back(csgRes->vCSGArr.at(csgRes->iCSGArr.at(ind2)));
+            auto n = glm::normalize(GLUtility::getNormal(csgRes->vCSGArr.at(csgRes->iCSGArr.at(ind)), csgRes->vCSGArr.at(csgRes->iCSGArr.at(ind1)), csgRes->vCSGArr.at(csgRes->iCSGArr.at(ind2))));
+            nArr.at(vArr.size() - 1) += n;
+            nArr.at(vArr.size() - 2) += n;
+            nArr.at(vArr.size() - 3) += n;
+            iArr.push_back(iArr.size());
+            iArr.push_back(iArr.size());
+            iArr.push_back(iArr.size());
+        }
+    }
+    else
+    {
+        /*for (size_t ind = 0; ind < csgRes->vCSGArr.size(); ind += 3)
+        {
+            auto ind1 = ind + 1;
+            auto ind2 = ind + 2;
+            vArr.push_back(glm::vec3(csgRes->vCSGArr.at(ind), csgRes->vCSGArr.at(ind1), csgRes->vCSGArr.at(ind2)));
+        }*/
+        vArr.assign(csgRes->vCSGArr.begin(), csgRes->vCSGArr.end());
+        nArr.resize(vArr.size());
+        for (size_t ind = 0; ind < csgRes->iCSGArr.size(); ind += 3)
+        {
+            auto ind1 = ind + 1;
+            auto ind2 = ind + 2;
+            auto v0 = vArr.at(csgRes->iCSGArr.at(ind));
+            auto v1 = vArr.at(csgRes->iCSGArr.at(ind1));
+            auto v2 = vArr.at(csgRes->iCSGArr.at(ind2));
+            auto n = glm::normalize(GLUtility::getNormal(v0,v1,v2));
+            nArr.at(csgRes->iCSGArr.at(ind))+=n;
+            nArr.at(csgRes->iCSGArr.at(ind1))+=n;
+            nArr.at(csgRes->iCSGArr.at(ind2))+=n;
+        }
+        for (size_t i=0;i<nArr.size();i++)
+        {
+            nArr.at(i) = glm::normalize(nArr.at(i));
+        }
+        iArr.assign(csgRes->iCSGArr.begin(), csgRes->iCSGArr.end());
+    }
     std::vector<GLUtility::VDPosNormColr> vData;
     for (size_t ind = 0; ind < vArr.size(); ind++)
     {
-        vData.push_back({ vArr.at(ind),nArr.at(ind),glm::vec3(0.5f,0.5f,1.0f) });
+        vData.push_back({ vArr.at(ind),glm::normalize(nArr.at(ind)),glm::vec3(0.5f,0.5f,1.0f) });
     }
 
     auto mesh = std::make_shared<Mesh>(vData, iArr);
