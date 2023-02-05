@@ -784,16 +784,17 @@ namespace GLUtility
 	void fillStarforCSG(float radius,float thickness, vector<glm::vec3>& vData, vector<unsigned int>& iData)
 	{
 		std::vector<glm::vec3> vArr1,vArr2;
-		vArr1.push_back(glm::vec3(0,thickness/2,0));
+		
 		vArr2.push_back(glm::vec3(0,-thickness/2,0));
-		for (float th=0;th<360;th+=90)
+		for (float th=0;th<360;th+=120)
 		{
 			float x = radius * cos(glm::radians(th));
 			float y = thickness / 2;
 			float z = radius * sin(glm::radians(th));
-			vArr1.push_back(glm::vec3(x, y, z));
+			vArr1.insert(vArr1.begin(), glm::vec3(x, y, z));
 			vArr2.push_back(glm::vec3(x, -y, z));
 		}
+		vArr1.insert(vArr1.begin(),glm::vec3(0, thickness / 2, 0));
 		for (auto v : vArr1)
 			vData.push_back(v);
 		for (auto v : vArr2)
@@ -803,18 +804,9 @@ namespace GLUtility
 			auto ind0 = 0;
 			auto ind1 = i;
 			auto ind2 = (i == vArr1.size() - 1) ? 1 : i + 1;
-			//iData.push_back(ind0); iData.push_back(ind1); iData.push_back(ind2);
-			iData.push_back(ind2); iData.push_back(ind1); iData.push_back(ind0);
+			iData.push_back(ind0); iData.push_back(ind1); iData.push_back(ind2);
 		}
-		for (size_t i = 1; i < vArr1.size(); i++)
-		{
-			auto ind0 = i;
-			auto ind1 = (i==vArr1.size()-1)?1:i + 1;
-			auto ind2 = (i) + (vArr1.size());
-			auto ind3 = (i == vArr1.size() - 1)?vArr1.size()+1 : ((i) + vArr1.size()) + 1;
-			iData.push_back(ind2); iData.push_back(ind1); iData.push_back(ind0);
-			iData.push_back(ind2); iData.push_back(ind3); iData.push_back(ind1);
-		}
+
 		for (size_t i = vArr1.size()+1; i < vArr1.size()+vArr2.size(); i++)
 		{
 			auto ind0 = vArr1.size();
@@ -822,6 +814,17 @@ namespace GLUtility
 			auto ind2 = (i == vArr1.size() + vArr2.size() - 1) ? vArr1.size() + 1 : i + 1;
 			iData.push_back(ind0); iData.push_back(ind1); iData.push_back(ind2);
 		}
+
+		for (size_t i = 1,j=vArr1.size()-1; i < vArr1.size(); i++,j--)
+		{
+			auto ind0 = j;
+			auto ind1 = (i == vArr1.size() - 1)? vArr1.size() - 1 :j - 1;
+			auto ind2 = (i) + (vArr1.size());
+			auto ind3 = (i == vArr1.size() - 1)?vArr1.size()+1 : ((i) + vArr1.size()) + 1;
+			iData.push_back(ind2); iData.push_back(ind3); iData.push_back(ind1);
+			iData.push_back(ind2); iData.push_back(ind1); iData.push_back(ind0);
+		}
+		
 	}
 
 	void fillPyramidforCSG(float base, float height, vector<glm::vec3>& vData, vector<unsigned int>& iData)

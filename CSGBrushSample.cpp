@@ -133,6 +133,9 @@ const int cols = 5;
 auto srcMesh = std::make_shared<InputMesh>();
 auto cutMesh = std::make_shared<InputMesh>();
 auto brushMesh = std::make_shared<InputMesh>();
+
+const char* bOplist[] = { "A_NOT_B", "B_NOT_A", "UNION", "INTERSECTION" };
+int cOP = 2;
 #pragma endregion 
 
 
@@ -318,12 +321,13 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
                 std::vector<unsigned int> iData;
                 auto m = glm::translate(glm::mat4(1),hitPoint);
                 //auto m = glm::translate(glm::mat4(1), glm::vec3(0.f, 0.f, 0.95f)) * glm::rotate(glm::mat4(1), glm::radians(45.f), GLUtility::Y_AXIS);
-                GLUtility::fillCubeforCSG(0.9f, 0.9f, 0.3f, m, vData, iData);
+                GLUtility::fillCubeforCSG(0.1f, 0.1f, 0.1f, m, vData, iData);
                 cutMesh->clean();
                 mesh2Csg(vData, iData, cutMesh);
                 
+
                 auto csgRes = std::make_shared<CSGResult>();
-                doCSG(srcMesh, cutMesh,"A_NOT_B", csgRes);
+                doCSG(srcMesh, cutMesh,std::string(bOplist[cOP]), csgRes);
                 pvColrObjs.erase(pvColrObjs.begin());
                 auto mesh = getMeshfromCSG(csgRes);
                 pvColrObjs.push_back(mesh);
@@ -431,8 +435,8 @@ void initImgui()
 
 void setupCamera() {
 
-    auto eye = glm::vec3(0, 5, 5);
-    auto center = glm::vec3(0, 0, 0);
+    auto eye = glm::vec3(0, 2.5, 2);
+    auto center = glm::vec3(0, 1, 0);
     auto up = glm::vec3(0, 1, 0);
     camera = std::make_shared<Camera>(eye,center,up);
     
@@ -491,14 +495,8 @@ void setupScene()
 
 void setupCSGMeshV4()
 {
-    {
-        std::vector<glm::vec3> vData;
-        std::vector<unsigned int> iData;
-        auto m = glm::mat4(1);
-        GLUtility::fillCubeforCSG(2.f, 2.f, 2.f, m, vData, iData);
-        mesh2Csg(vData, iData, srcMesh);
-    }
-    
+   
+    if(false)
     {
         std::vector<glm::vec3> vData;
         std::vector<unsigned int> iData;
@@ -507,6 +505,42 @@ void setupCSGMeshV4()
         GLUtility::fillCubeforCSG(0.9f, 0.9f, 0.3f, m, vData, iData);
         mesh2Csg(vData, iData, cutMesh);
         //tranformCSGMesh(cutMesh, m);
+    }
+    
+    if(false)
+    {
+        std::vector<glm::vec3> vData;
+        std::vector<unsigned int> iData;
+        GLUtility::fillStarforCSG(3, 0.3, vData, iData);
+        mesh2Csg(vData, iData, cutMesh);
+        /*auto tst = std::make_shared<CSGResult>();
+        tst->vCSGArr.assign(vData.data(),vData.data()+(vData.size()*3));
+        tst->iCSGArr.assign(iData.data(), iData.data() + (iData.size() * 1));
+        auto mesh = getMeshfromCSG(tst);
+        pvColrObjs.push_back(mesh);*/
+    }
+
+    {
+        std::vector<glm::vec3> vData;
+        std::vector<unsigned int> iData;
+        auto m = glm::mat4(1);
+        GLUtility::fillCubeforCSG(.5f, 0.5f, 0.5f, m, vData, iData);
+        mesh2Csg(vData, iData, srcMesh);
+    }
+
+    {
+        //std::vector<double> vData;
+        //std::vector<unsigned int> iData;
+        loadObj("assets/vase/vase-t.obj", cutMesh->vertexCoordsArray, cutMesh->faceIndicesArray);
+        cutMesh->faceSizesArray = std::vector<uint32_t>(cutMesh->faceIndicesArray.size() / 3, 3);
+        cutMesh->numVertices = cutMesh->vertexCoordsArray.size();
+        cutMesh->numFaces = cutMesh->faceIndicesArray.size() / 3;
+        //mesh2Csg(vData, iData, cutMesh);
+        /*auto tst = std::make_shared<CSGResult>();
+        tst->vCSGArr.assign(vData.data(),vData.data()+(vData.size()*3));
+        tst->iCSGArr.assign(iData.data(), iData.data() + (iData.size() * 1));
+        auto mesh = getMeshfromCSG(tst);
+        pvColrObjs.push_back(mesh);*/
     }
 
     brushMesh = std::make_shared<InputMesh>();
@@ -522,41 +556,8 @@ void setupCSGMeshV4()
     //tranformCSGMesh(brushMesh, m);
     auto csgRes = std::make_shared<CSGResult>();
     doCSG(srcMesh, cutMesh, "UNION", csgRes);
-    //doCSG(csgRes->resMesh, cutMesh2, "A_NOT_B", csgRes);
 
 
-   /* std::vector<glm::vec3> vArr;
-    std::vector<glm::vec3> nArr(csgRes->iCSGArr.size());
-    std::vector<unsigned int> iArr;
-
-    for (size_t ind = 0; ind < csgRes->iCSGArr.size(); ind += 3)
-    {
-        auto ind1 = ind + 1;
-        auto ind2 = ind + 2;
-        vArr.push_back(csgRes->vCSGArr.at(csgRes->iCSGArr.at(ind)));
-        vArr.push_back(csgRes->vCSGArr.at(csgRes->iCSGArr.at(ind1)));
-        vArr.push_back(csgRes->vCSGArr.at(csgRes->iCSGArr.at(ind2)));
-        auto n = glm::normalize(GLUtility::getNormal(csgRes->vCSGArr.at(csgRes->iCSGArr.at(ind)), csgRes->vCSGArr.at(csgRes->iCSGArr.at(ind1)), csgRes->vCSGArr.at(csgRes->iCSGArr.at(ind2))));
-        nArr.at(vArr.size() - 1) += n;
-        nArr.at(vArr.size() - 2) += n;
-        nArr.at(vArr.size() - 3) += n;
-        nArr.at(vArr.size() - 1) /= 2.f;
-        nArr.at(vArr.size() - 2) /= 2.f;
-        nArr.at(vArr.size() - 3) /= 2.f;
-        iArr.push_back(iArr.size());
-        iArr.push_back(iArr.size());
-        iArr.push_back(iArr.size());
-    }
-
-    std::vector<GLUtility::VDPosNormColr> vData;
-    for (size_t ind = 0; ind < vArr.size(); ind++)
-    {
-        vData.push_back({ vArr.at(ind),nArr.at(ind),glm::vec3(0.5f,0.5f,1.0f) });
-    }
-
-    auto mesh = std::make_shared<Mesh>(vData, iArr);
-    mesh->tMatrix = glm::mat4(1);
-    mesh->drawCommand = GL_TRIANGLES;*/
     auto mesh = getMeshfromCSG(csgRes);
     pvColrObjs.push_back(mesh);
     srcMesh = csgRes->resMesh;
@@ -987,6 +988,9 @@ void renderImgui()
         ImGui::SliderFloat("Scene Y Rotation", &gRotation, 0, 360);
         ImGui::SliderFloat("Scene X Rotation", &xRotation, -180, 180);
         //ImGui::Text("Use Lef mouse click to pick triangle");
+        
+        
+        ImGui::Combo("Boolean op", &cOP, bOplist,IM_ARRAYSIZE(bOplist), 2);
 
         ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
