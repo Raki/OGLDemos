@@ -19,7 +19,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="CSGBrushSample.cpp" />
     <ClCompile Include="imgui-1.88\backends\imgui_impl_glfw.cpp" />
     <ClCompile Include="imgui-1.88\backends\imgui_impl_opengl3.cpp" />
     <ClCompile Include="imgui-1.88\imgui.cpp" />
@@ -27,6 +26,7 @@
     <ClCompile Include="imgui-1.88\imgui_draw.cpp" />
     <ClCompile Include="imgui-1.88\imgui_tables.cpp" />
     <ClCompile Include="imgui-1.88\imgui_widgets.cpp" />
+    <ClCompile Include="Orientation.cpp" />
     <ClCompile Include="utils\Camera.cpp" />
     <ClCompile Include="utils\Colors.cpp" />
     <ClCompile Include="utils\GLMaterial.cpp" />

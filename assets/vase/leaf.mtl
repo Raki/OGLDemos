@@ -1,0 +1,13 @@
+# Blender 3.4.1 MTL File: 'None'
+# www.blender.org
+
+newmtl new_plant_1:phongE4
+Ns 200.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+illum 2
+map_Kd C:/Users/Ravik/Downloads/3icl82ea6itc-Plant/Plant Model/Plant Textures/leaf texture 1.png
+map_d C:/Users/Ravik/Downloads/3icl82ea6itc-Plant/Plant Model/Plant Textures/leaf texture 1.png
+map_Bump -bm 0.050000 C:/Users/Ravik/Downloads/3icl82ea6itc-Plant/Plant Model/Plant Textures/leaf texture 1 bump.png

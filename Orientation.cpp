@@ -91,7 +91,7 @@ glm::mat4 globalModelMat = glm::mat4(1);
 
 std::shared_ptr<GlslProgram> basicProgram, dirLightProgram,cMapProgram;
 std::vector<std::shared_ptr<Mesh>> defaultMatObjs,diffuseMatObjs,pvColrObjs;
-std::shared_ptr<Mesh> lBox,skyBox,groupObj;
+std::shared_ptr<Mesh> lBox,groupObj,leftObj;
 std::shared_ptr<FrameBuffer> layer1;
 std::shared_ptr<Texture2D> diffuseTex, specularTex;
 glm::vec3 lightPosition = glm::vec3(5, 6, 0);
@@ -318,23 +318,15 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
         {
             fmt::print("hit point {},{},{}", hitPoint.x, hitPoint.y, hitPoint.z);
             {
-                //std::vector<glm::vec3> vData;
-                //std::vector<unsigned int> iData;
-                auto m = glm::translate(glm::mat4(1),hitPoint);
-                ////auto m = glm::translate(glm::mat4(1), glm::vec3(0.f, 0.f, 0.95f)) * glm::rotate(glm::mat4(1), glm::radians(45.f), GLUtility::Y_AXIS);
-                //GLUtility::fillCubeforCSG(0.1f, 0.1f, 0.1f, m, vData, iData);
-                //cutMesh->clean();
-                //mesh2Csg(vData, iData, cutMesh);
-                tranformCSGMesh(brushMesh, m);
-                
-
-                auto csgRes = std::make_shared<CSGResult>();
-                //doCSG(srcMesh, cutMesh,std::string(bOplist[cOP]), csgRes);
-                doCSG(srcMesh, brushMesh, std::string(bOplist[cOP]), csgRes);
-                pvColrObjs.erase(pvColrObjs.begin());
-                auto mesh = getMeshfromCSG(csgRes);
-                pvColrObjs.push_back(mesh);
-                srcMesh = csgRes->resMesh;
+                auto v = glm::vec4(0, 0, 0, 1);
+                v = leftObj->tMatrix * v;
+                auto dir = glm::normalize( hitPoint - glm::vec3(v));
+                auto v1 = dir;
+                auto v2 = glm::vec3(0, 1, 0);
+                auto v3 = glm::normalize(glm::cross(v1,v2));
+                v2 = glm::normalize(glm::cross(v1, v3));
+                auto m = glm::mat4(glm::vec4(v1, 0), glm::vec4(v2, 0), glm::vec4(v3, 0), glm::vec4(0, 0, 0, 1));
+                leftObj->tMatrix = leftObj->tMatrix * m;
             }
         }
     }
@@ -388,8 +380,7 @@ void initGL()
     glPointSize(3.0f);
     
     glViewport(0, 0, WIN_WIDTH, WIN_HEIGHT);
-    //glClearColor(0.1f, 0.2f, 0.3f, 1.0f);
-    glClearColor(0.5f,0.5f,0.5f, 1.0f);
+    glClearColor(0.1f, 0.2f, 0.3f, 1.0f);
 
     auto vsStr = Utility::readFileContents("shaders/vLights.glsl");
     vsStr = Utility::replaceStrWith("#version 460", "#version 460 \n#define PER_VERTEX_COLOR",vsStr);
@@ -438,7 +429,7 @@ void initImgui()
 
 void setupCamera() {
 
-    auto eye = glm::vec3(0, 2.5, 2);
+    auto eye = glm::vec3(0, 2.5, 4);
     auto center = glm::vec3(0, 1, 0);
     auto up = glm::vec3(0, 1, 0);
     camera = std::make_shared<Camera>(eye,center,up);
@@ -459,8 +450,6 @@ void setupScene()
     light.cutOff = 40.0f;
     light.outerCutOff = 60.0f;
 
-
-    //skyBox = GLUtility::getCubeVec3(2, 2, 2);
 
     lBox = GLUtility::getCubeVec3(0.2f, 0.2f, 0.2f);
     lBox->color = glm::vec4(1.0);
@@ -487,90 +476,27 @@ void setupScene()
     
     defaultMatObjs.push_back(lBox);
 
-    std::vector<GLUtility::VDPosNormColr> vData2;
-    std::vector<unsigned int> iData2;
-    std::vector<glm::vec3> posArr;
+    pvColrObjs.push_back(groupObj);
     
-    //pvColrObjs.push_back(groupObj);
-    
-    setupCSGMeshV4();
-}
+    {
+        std::vector<GLUtility::VDPosNormColr> vData;
+        std::vector<unsigned int> iData;
+        GLUtility::fillCube(1.f,1.f,1.f, glm::vec3(0.5f,0.5f,1.0f), m, vData, iData);
+        auto mesh = std::make_shared<GLUtility::Mesh>(vData, iData);
+        mesh->tMatrix = glm::translate(glm::mat4(1),glm::vec3(-1,0,0));
+        leftObj = mesh;
+        pvColrObjs.push_back(mesh);
+    }
 
-void setupCSGMeshV4()
-{
+    {
+        std::vector<GLUtility::VDPosNormColr> vData;
+        std::vector<unsigned int> iData;
+        GLUtility::fillCube(1.f, 3.f, 3.f, glm::vec3(0.5f, 1.f, 1.0f), m, vData, iData);
+        auto mesh = std::make_shared<GLUtility::Mesh>(vData, iData);
+        mesh->tMatrix = glm::translate(glm::mat4(1), glm::vec3(1, 0, 0));
+        pvColrObjs.push_back(mesh);
+    }
    
-    if(false)
-    {
-        std::vector<glm::vec3> vData;
-        std::vector<unsigned int> iData;
-        auto m = glm::translate(glm::mat4(1), glm::vec3(0.f, 0.f, 1.0f));
-        //auto m = glm::translate(glm::mat4(1), glm::vec3(0.f, 0.f, 0.95f)) * glm::rotate(glm::mat4(1), glm::radians(45.f), GLUtility::Y_AXIS);
-        GLUtility::fillCubeforCSG(0.9f, 0.9f, 0.3f, m, vData, iData);
-        mesh2Csg(vData, iData, cutMesh);
-        //tranformCSGMesh(cutMesh, m);
-    }
-    
-    if(false)
-    {
-        std::vector<glm::vec3> vData;
-        std::vector<unsigned int> iData;
-        GLUtility::fillStarforCSG(3, 0.3, vData, iData);
-        mesh2Csg(vData, iData, cutMesh);
-        /*auto tst = std::make_shared<CSGResult>();
-        tst->vCSGArr.assign(vData.data(),vData.data()+(vData.size()*3));
-        tst->iCSGArr.assign(iData.data(), iData.data() + (iData.size() * 1));
-        auto mesh = getMeshfromCSG(tst);
-        pvColrObjs.push_back(mesh);*/
-    }
-
-    {
-        std::vector<glm::vec3> vData;
-        std::vector<unsigned int> iData;
-        auto m = glm::mat4(1);
-        GLUtility::fillCubeforCSG(.5f, 0.5f, 0.5f, m, vData, iData);
-        mesh2Csg(vData, iData, srcMesh);
-        tranformCSGMesh(srcMesh, glm::translate(m,glm::vec3(0.1,0,0)));
-    }
-
-    {
-        //std::vector<double> vData;
-        //std::vector<unsigned int> iData;
-        loadObj("assets/vase/vase-t2.obj", cutMesh->vertexCoordsArray, cutMesh->faceIndicesArray);
-        cutMesh->faceSizesArray = std::vector<uint32_t>(cutMesh->faceIndicesArray.size() / 3, 3);
-        cutMesh->numVertices = cutMesh->vertexCoordsArray.size();
-        cutMesh->numFaces = cutMesh->faceIndicesArray.size() / 3;
-        //mesh2Csg(vData, iData, cutMesh);
-        /*auto tst = std::make_shared<CSGResult>();
-        tst->vCSGArr.assign(vData.data(),vData.data()+(vData.size()*3));
-        tst->iCSGArr.assign(iData.data(), iData.data() + (iData.size() * 1));
-        auto mesh = getMeshfromCSG(tst);
-        pvColrObjs.push_back(mesh);*/
-    }
-
-    brushMesh = std::make_shared<InputMesh>();
-    {
-        /*std::vector<glm::vec3> vData;
-        std::vector<unsigned int> iData;
-        auto m = glm::mat4(1);
-        GLUtility::fillCubeforCSG(0.1f, 0.1f, 0.1f, m, vData, iData);
-        mesh2Csg(vData, iData, brushMesh);*/
-        
-         loadObj("assets/vase/trs.obj", brushMesh->vertexCoordsArray, brushMesh->faceIndicesArray);
-        brushMesh->faceSizesArray = std::vector<uint32_t>(brushMesh->faceIndicesArray.size() / 3, 3);
-        brushMesh->numVertices = brushMesh->vertexCoordsArray.size();
-        brushMesh->numFaces = brushMesh->faceIndicesArray.size() / 3;
-        //tranformCSGMesh(brushMesh, glm::scale(glm::mat4(1), glm::vec3(0.1)),true);
-        tranformCSGMesh(brushMesh, glm::rotate(glm::mat4(1), glm::radians(90.0f),GLUtility::Y_AXIS), true);
-
-    }
-    
-    auto csgRes = std::make_shared<CSGResult>();
-    doCSG(srcMesh, cutMesh, "UNION", csgRes);
-
-
-    auto mesh = getMeshfromCSG(csgRes);
-    pvColrObjs.push_back(mesh);
-    srcMesh = csgRes->resMesh;
 }
 
 void tranformCSGMesh(std::shared_ptr<InputMesh> mesh,glm::mat4 tMat,bool updateBase)
