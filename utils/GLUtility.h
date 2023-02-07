@@ -113,6 +113,9 @@ namespace GLUtility
 		vector<Texture> textures;
 
 		glm::mat4 tMatrix;
+		glm::mat4 trans;
+		glm::mat4 rot;
+		glm::mat4 scle;
 		unsigned int drawCount;
 		string name;
 		glm::vec3 position;

@@ -801,26 +801,26 @@ namespace GLUtility
 			vData.push_back(v);
 		for (size_t i = 1; i < vArr1.size(); i++)
 		{
-			auto ind0 = 0;
-			auto ind1 = i;
-			auto ind2 = (i == vArr1.size() - 1) ? 1 : i + 1;
+			unsigned int ind0 = 0;
+			auto ind1 = static_cast<unsigned int>(i);
+			auto ind2 = static_cast<unsigned int>((i == vArr1.size() - 1) ? 1 : i + 1);
 			iData.push_back(ind0); iData.push_back(ind1); iData.push_back(ind2);
 		}
 
 		for (size_t i = vArr1.size()+1; i < vArr1.size()+vArr2.size(); i++)
 		{
-			auto ind0 = vArr1.size();
-			auto ind1 = i;
-			auto ind2 = (i == vArr1.size() + vArr2.size() - 1) ? vArr1.size() + 1 : i + 1;
+			auto ind0 = static_cast<unsigned int>(vArr1.size());
+			auto ind1 = static_cast<unsigned int>(i);
+			auto ind2 = static_cast<unsigned int>((i == vArr1.size() + vArr2.size() - 1) ? vArr1.size() + 1 : i + 1);
 			iData.push_back(ind0); iData.push_back(ind1); iData.push_back(ind2);
 		}
 
 		for (size_t i = 1,j=vArr1.size()-1; i < vArr1.size(); i++,j--)
 		{
-			auto ind0 = j;
-			auto ind1 = (i == vArr1.size() - 1)? vArr1.size() - 1 :j - 1;
-			auto ind2 = (i) + (vArr1.size());
-			auto ind3 = (i == vArr1.size() - 1)?vArr1.size()+1 : ((i) + vArr1.size()) + 1;
+			auto ind0 = static_cast<unsigned int>(j);
+			auto ind1 = static_cast<unsigned int>((i == vArr1.size() - 1)? vArr1.size() - 1 :j - 1);
+			auto ind2 = static_cast<unsigned int>((i) + (vArr1.size()));
+			auto ind3 = static_cast<unsigned int>((i == vArr1.size() - 1)?vArr1.size()+1 : ((i) + vArr1.size()) + 1);
 			iData.push_back(ind2); iData.push_back(ind3); iData.push_back(ind1);
 			iData.push_back(ind2); iData.push_back(ind1); iData.push_back(ind0);
 		}
@@ -1328,6 +1328,9 @@ namespace GLUtility
 		vao = makeVertexArrayObject(vbo, ibo);
 		drawCount = (unsigned int)iData.size();
 		tMatrix = glm::mat4(1);
+		trans = glm::mat4(1);
+		rot = glm::mat4(1);
+		scle = glm::mat4(1);
 	}
 
 	Mesh::Mesh(vector<VDPosNormColr> vData, vector<unsigned int> iData)
@@ -1349,6 +1352,9 @@ namespace GLUtility
 		glBindVertexArray(0);
 		drawCount = (unsigned int)iData.size();
 		tMatrix = glm::mat4(1);
+		trans = glm::mat4(1);
+		rot = glm::mat4(1);
+		scle = glm::mat4(1);
 	}
 
 	Mesh::Mesh(vector<glm::vec3> vData, vector<unsigned int> iData)
@@ -1360,6 +1366,9 @@ namespace GLUtility
 		vao = makeVertexArrayObjectVec3(vbo, ibo);
 		drawCount = (unsigned int)iData.size();
 		tMatrix = glm::mat4(1);
+		trans = glm::mat4(1);
+		rot = glm::mat4(1);
+		scle = glm::mat4(1);
 	}
 
 	Mesh::Mesh(vector<VertexData> vData, vector<unsigned int> iData, vector<Texture> textures)
@@ -1372,6 +1381,9 @@ namespace GLUtility
 		vao = makeVertexArrayObject(vbo, ibo);
 		drawCount = (unsigned int)iData.size();
 		tMatrix = glm::mat4(1);
+		trans = glm::mat4(1);
+		rot = glm::mat4(1);
+		scle = glm::mat4(1);
 	}
 
 	void Mesh::updateIbo()
