@@ -26,7 +26,6 @@
     <ClCompile Include="imgui-1.88\imgui_draw.cpp" />
     <ClCompile Include="imgui-1.88\imgui_tables.cpp" />
     <ClCompile Include="imgui-1.88\imgui_widgets.cpp" />
-    <ClCompile Include="OrientationTestCase.cpp" />
     <ClCompile Include="utils\Camera.cpp" />
     <ClCompile Include="utils\Colors.cpp" />
     <ClCompile Include="utils\GLMaterial.cpp" />
@@ -34,6 +33,7 @@
     <ClCompile Include="utils\GLUtility.cpp" />
     <ClCompile Include="utils\Materials.cpp" />
     <ClCompile Include="utils\Utility.cpp" />
+    <ClCompile Include="XMLto2D.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="utils\Camera.h" />

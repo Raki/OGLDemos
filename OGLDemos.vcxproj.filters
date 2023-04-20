@@ -63,7 +63,7 @@
     <ClCompile Include="imgui-1.88\imgui_tables.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
-    <ClCompile Include="OrientationTestCase.cpp">
+    <ClCompile Include="XMLto2D.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>

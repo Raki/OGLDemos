@@ -8,6 +8,7 @@
 #include <vector>
 #include <array>
 #include <map>
+#include <unordered_map>
 #include <chrono>
 
 #include <imgui.h>
@@ -23,6 +24,7 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+#include <fmt/format.h>
 #include <tiny_obj_loader.h>
 
 using std::cout;
