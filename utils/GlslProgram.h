@@ -14,6 +14,7 @@ class GlslProgram
 {
 	map<string, glm::vec2> vec2Map;
 	map<string, glm::vec3> vec3Map;
+	map<string, std::vector<glm::vec3>> vec3vMap;
 	map<string, glm::vec4> vec4Map;
 	map<string, glm::mat4> mat4Map;
 	map<string, float> floatMap;
@@ -39,6 +40,7 @@ public:
 	void setVec2f(string name, glm::vec2 val);
 	void bindVec2f(string name, glm::vec2 val);
 	void setVec3f(string name, glm::vec3 val);
+	void setVec3f(string name, std::vector<glm::vec3> vArr);
     void bindVec3f(string name, glm::vec3 val);
 	void setVec4f(string name, glm::vec4 val);
 	void bindVec4f(string name, glm::vec4 val);

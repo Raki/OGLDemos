@@ -89,9 +89,9 @@ glm::mat4 globalModelMat = glm::mat4(1);
 
 
 
-std::shared_ptr<GlslProgram> basicProgram, dirLightProgram,cMapProgram;
+std::shared_ptr<GlslProgram> pbrProgram;
 std::vector<std::shared_ptr<Mesh>> defaultMatObjs,diffuseMatObjs,pvColrObjs;
-std::shared_ptr<Mesh> lBox,groupObj,leftObj;
+std::shared_ptr<Mesh> lBox,cube;
 std::shared_ptr<FrameBuffer> layer1;
 std::shared_ptr<Texture2D> diffuseTex, specularTex;
 glm::vec3 lightPosition = glm::vec3(5, 6, 0);
@@ -137,6 +137,17 @@ auto brushMesh = std::make_shared<InputMesh>();
 
 const char* bOplist[] = { "A_NOT_B", "B_NOT_A", "UNION", "INTERSECTION" };
 int cOP = 2;
+struct PBRProps
+{
+    float metallic;
+    float roughness;
+    float ao;
+    std::shared_ptr<Texture2D> albedoTex;
+    std::shared_ptr<Texture2D> metallicTex;
+    std::shared_ptr<Texture2D> roughnessTex;
+    std::shared_ptr<Texture2D> normalTex;
+}pbrProps;
+
 #pragma endregion 
 
 
@@ -315,7 +326,7 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
         {
             fmt::print("hit point {},{},{}", hitPoint.x, hitPoint.y, hitPoint.z);
             {
-                auto v = glm::vec4(0, 0, 0, 1);
+                /*auto v = glm::vec4(0, 0, 0, 1);
                 v = leftObj->tMatrix * v;
                 auto dir = glm::normalize( hitPoint - glm::vec3(v));
                 auto v1 = dir;
@@ -323,7 +334,7 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
                 auto v3 = glm::normalize(glm::cross(v1,v2));
                 v2 = glm::normalize(glm::cross(v1, v3));
                 auto m = glm::mat4(glm::vec4(v1, 0), glm::vec4(v2, 0), glm::vec4(v3, 0), glm::vec4(0, 0, 0, 1));
-                leftObj->tMatrix = leftObj->tMatrix * m;
+                leftObj->tMatrix = leftObj->tMatrix * m;*/
             }
         }
     }
@@ -376,14 +387,16 @@ void initGL()
     glEnable(GL_DEPTH_TEST);
     glPointSize(3.0f);
     
+
     glViewport(0, 0, WIN_WIDTH, WIN_HEIGHT);
     glClearColor(0.1f, 0.2f, 0.3f, 1.0f);
 
-    auto vsStr = Utility::readFileContents("shaders/vLights.glsl");
-    vsStr = Utility::replaceStrWith("#version 460", "#version 460 \n#define PER_VERTEX_COLOR",vsStr);
-    auto fsStr = Utility::readFileContents("shaders/fLights.glsl");
-    fsStr = Utility::replaceStrWith("#version 460", "#version 460 \n#define PER_VERTEX_COLOR", fsStr);
-    basicProgram = std::make_shared<GlslProgram>(vsStr, fsStr);
+    auto vsStr = Utility::readFileContents("shaders/vPBRBasic.glsl");
+    auto fsStr = Utility::readFileContents("shaders/fPBRBasic.glsl");
+    pbrProgram = std::make_shared<GlslProgram>(vsStr, fsStr);
+    pbrProps.metallic = 0.5f;
+    pbrProps.roughness = 0.5f;
+    pbrProps.ao = 1.0f;
 
     assert(basicProgram->programID);
 
@@ -398,6 +411,20 @@ void initGL()
     diffuseTex->texture = diffTex;
     specularTex = std::make_shared<Texture2D>();
     specularTex->texture = specTex;
+    
+    auto albedoTex = GLUtility::makeTexture("assets/textures/pbr/rusted-iron/iron-rusted4-basecolor.png");
+    auto metallicTex = GLUtility::makeTexture("assets/textures/pbr/rusted-iron/iron-rusted4-metalness.png");
+    auto roughnessTex = GLUtility::makeTexture("assets/textures/pbr/rusted-iron/iron-rusted4-roughness.png");
+    auto normalTex = GLUtility::makeTexture("assets/textures/pbr/rusted-iron/iron-rusted4-normal.png");
+
+    pbrProps.albedoTex = std::make_shared<Texture2D>();
+    pbrProps.albedoTex->texture = albedoTex;
+    pbrProps.metallicTex = std::make_shared<Texture2D>();
+    pbrProps.metallicTex->texture = metallicTex;
+    pbrProps.roughnessTex = std::make_shared<Texture2D>();
+    pbrProps.roughnessTex->texture = roughnessTex;
+    pbrProps.normalTex = std::make_shared<Texture2D>();
+    pbrProps.normalTex->texture = normalTex;
     
 }
 
@@ -436,63 +463,8 @@ void setupCamera() {
 
 void setupScene()
 {
-    light.direction = glm::vec3(0, -1, -1);
-    light.position = glm::vec3(0, 5, 0);
-    light.ambient = glm::vec3(0.2f);
-    light.diffuse = glm::vec3(0.5f);
-    light.specular = glm::vec3(1.0f, 1.0f, 1.0f);
-    light.constant = 1.0f;
-    light.linear = 0.045f;
-    light.quadratic = 0.0075f;
-    light.cutOff = 40.0f;
-    light.outerCutOff = 60.0f;
-
-    lBox = GLUtility::getCubeVec3(0.2f, 0.2f, 0.2f);
-    lBox->color = glm::vec4(1.0);
-    lBox->tMatrix = glm::translate(glm::mat4(1), light.position);
-    lBox->pickColor = glm::vec4(1.0);
-    defaultMatObjs.push_back(lBox);
-
-    std::vector<GLUtility::VDPosNormColr> vData;
-    std::vector<unsigned int> iData;
-
-    auto m = glm::mat4(1);
-    //x axis
-    GLUtility::fillCube(8, 0.1f, 0.1f, Color::red, m, vData, iData);
-    //y axis
-    GLUtility::fillCube(0.1, 8.f, 0.1f, Color::green, m, vData, iData);
-    //z axis
-    GLUtility::fillCube(0.1, 0.1f, 8.f, Color::blue, m, vData, iData);
-
-    groupObj = std::make_shared<GLUtility::Mesh>(vData, iData);
-    groupObj->trans = glm::mat4(1);
-    pvColrObjs.push_back(groupObj);
-
-    {
-        std::vector<GLUtility::VDPosNormColr> vData;
-        std::vector<unsigned int> iData;
-        GLUtility::fillCube(1.f, 1.f, 1.f, glm::vec3(0.5f, 0.5f, 1.0f), m, vData, iData);
-        auto mesh = std::make_shared<GLUtility::Mesh>(vData, iData);
-        mesh->trans = glm::translate(glm::mat4(1), glm::vec3(-1, 0, 0));
-        mesh->rot = glm::rotate(glm::mat4(1),glm::radians(30.f),GLUtility::Y_AXIS);
-        mesh->scle = glm::scale(glm::mat4(1), glm::vec3(0.75f));
-        mesh->tMatrix = glm::mat4(1);
-        leftObj = mesh;
-        pvColrObjs.push_back(mesh);
-    }
-
-    {
-        std::vector<GLUtility::VDPosNormColr> vData;
-        std::vector<unsigned int> iData;
-        GLUtility::fillCube(1.f, 3.f, 3.f, glm::vec3(0.5f, 1.f, 1.0f), m, vData, iData);
-        auto mesh = std::make_shared<GLUtility::Mesh>(vData, iData);
-        mesh->trans = glm::translate(glm::mat4(1), glm::vec3(1, 0, 0));
-        mesh->rot = glm::rotate(glm::mat4(1), glm::radians(-30.f), GLUtility::Y_AXIS);
-        mesh->scle = glm::scale(glm::mat4(1), glm::vec3(0.75f, 0.3f, 0.75f));
-        mesh->tMatrix = glm::mat4(1);
-        pvColrObjs.push_back(mesh);
-    }
    
+    cube = GLUtility::getCube(2, 2, 2);
 }
 
 std::shared_ptr<FrameBuffer> getFboMSA(std::shared_ptr<FrameBuffer> refFbo, int samples)
@@ -552,72 +524,46 @@ void updateFrame()
     auto t = glfwGetTime()*20;
     auto theta = (int)t % 360;
     
-    lBox->tMatrix = glm::translate(glm::mat4(1), light.position);
+    //lBox->tMatrix = glm::translate(glm::mat4(1), light.position);
     camera->orbitY(glm::radians(gRotation));
     globalModelMat = glm::rotate(glm::mat4(1),glm::radians(xRotation),GLUtility::X_AXIS);
 }
 
 void renderFrame()
 {
-   
     glBindFramebuffer(GL_FRAMEBUFFER, layer1->fbo);
     glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-
     
+    pbrProgram->bind();
     
-    basicProgram->bind();
+    pbrProgram->setMat4f("view", camera->viewMat);
+    pbrProgram->setMat4f("proj", projectionMat);
     
-    basicProgram->setMat4f("view", camera->viewMat);
-    basicProgram->setMat4f("proj", projectionMat);
-    basicProgram->setVec3f("color", Color::red);
-
-    basicProgram->setVec3f("lightPos", light.position);
-    basicProgram->setVec3f("lightColr", light.diffuse);
-    basicProgram->setFloat("lReach", 3.f);
-
-    basicProgram->activeSubrountine("getColr", GL_FRAGMENT_SHADER);
     glm::mat4 mv;
     
-    for (auto& obj : defaultMatObjs)
     {
-        mv = obj->tMatrix * globalModelMat;
+        pbrProgram->setVec3f("camPos", camera->eye);
+        pbrProgram->setVec3f("albedo", glm::vec3(0.7, 0.1, 0.1));
+        pbrProgram->setFloat("metallic", pbrProps.metallic);
+        pbrProgram->setFloat("roughness", pbrProps.roughness);
+        pbrProgram->setFloat("ao", pbrProps.ao);
+
+        const std::vector<glm::vec3> lPos = {camera->eye+glm::vec3(-1,1,0),camera->eye + glm::vec3(1,1,0),
+            camera->eye + glm::vec3(-1,-1,0),camera->eye + glm::vec3(1,-1,0) };
+        const std::vector<glm::vec3> lCols = { glm::vec3(30),glm::vec3(30) ,glm::vec3(30) ,glm::vec3(30) };
+        pbrProgram->setVec3f("lightPositions", lPos);
+        pbrProgram->setVec3f("lightColors", lCols);
+
+        mv = cube->tMatrix * globalModelMat;
         auto normlMat = glm::transpose(glm::inverse(mv));
-        basicProgram->setMat4f("model", mv);
-        basicProgram->setMat4f("nrmlMat", normlMat);
-        basicProgram->setVec3f("color", glm::vec3(obj->color));
-        basicProgram->bindAllUniforms();
-        obj->draw();
+        pbrProgram->setMat4f("model", mv);
+        pbrProgram->setMat4f("nrmlMat", normlMat);
+        pbrProgram->bindAllUniforms();
+        cube->draw();
     }
 
-    basicProgram->activeSubrountine("getDiffuseColr", GL_FRAGMENT_SHADER);
-    for (auto& obj : diffuseMatObjs)
-    {
-        mv = obj->tMatrix * globalModelMat;
-        auto normlMat = glm::transpose(glm::inverse(mv));
-        basicProgram->setMat4f("model", mv);
-        basicProgram->setMat4f("nrmlMat", normlMat);
-        basicProgram->setVec3f("color", glm::vec3(obj->color));
-        basicProgram->bindAllUniforms();
-        obj->draw();
-    }
 
-    for (auto& obj : pvColrObjs)
-    {
-        basicProgram->activeSubrountine("getDiffuseColrVertex", GL_FRAGMENT_SHADER);
-        //decltype(groupObj) obj = groupObj;
-        auto m = obj->trans * obj->rot * obj->scle;
-        mv =  m* globalModelMat;
-        auto normlMat = glm::transpose(glm::inverse(mv));
-        basicProgram->setMat4f("model", mv);
-        basicProgram->setMat4f("nrmlMat", normlMat);
-        basicProgram->setVec3f("color", glm::vec3(obj->color));
-        basicProgram->bindAllUniforms();
-        obj->draw();
-    }
-    basicProgram->unbind();
-    
-
-   
+    pbrProgram->unbind();
 
     //blitting
     auto err = glGetError();
@@ -659,6 +605,16 @@ void renderImgui()
         ImGui::SliderFloat3("Diffuse", &light.diffuse[0], 0, 1);
         
         ImGui::SliderFloat("Cam speed", &camSpeed, 0, 5);
+        //ImGui::SliderFloat("outerCutOff", &light.outerCutOff, 0, 90);
+
+        ImGui::End();
+    }
+
+    {
+        ImGui::Begin("PBR params");
+        ImGui::SliderFloat("metallic", &pbrProps.metallic, 0, 1);
+        ImGui::SliderFloat("roughness", &pbrProps.roughness, 0, 1);
+        ImGui::SliderFloat("ao", &pbrProps.ao, 0, 1);
         //ImGui::SliderFloat("outerCutOff", &light.outerCutOff, 0, 90);
 
         ImGui::End();

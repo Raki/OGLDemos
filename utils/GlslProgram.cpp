@@ -1,5 +1,5 @@
 #include "GlslProgram.h"
-
+#include <glm/gtc/type_ptr.hpp>
 
 GlslProgram::GlslProgram(string vShaderStr, string fShaderStr)
 {
@@ -271,6 +271,16 @@ void GlslProgram::setVec3f(string name, glm::vec3 val)
 	vec3Map[name] = val;
 }
 
+void GlslProgram::setVec3f(string name, std::vector<glm::vec3> vArr)
+{
+	if (uniformLocations.find(name) == uniformLocations.end())
+	{
+		auto loc = glGetUniformLocation(programID, name.c_str());
+		uniformLocations[name] = loc;
+	}
+	vec3vMap[name] = vArr;
+}
+
 void GlslProgram::bindVec3f(string name, glm::vec3 val)
 {
 	if (uniformLocations.find(name) == uniformLocations.end())
@@ -407,6 +417,11 @@ void GlslProgram::bindAllUniforms()
 	for (auto itr : intMap)
 	{
 		glUniform1i(uniformLocations[itr.first], itr.second);
+	}
+
+	for (auto itr : vec3vMap)
+	{
+		glUniform3fv(uniformLocations[itr.first], itr.second.size(),&itr.second[0][0]);
 	}
 }
 
