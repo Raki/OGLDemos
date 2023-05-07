@@ -114,7 +114,7 @@ namespace GLUtility
 	}
 
 	//ToDo : check if file is missing
-	GLuint makeTexture(string fileName)
+	GLuint makeTexture(string fileName, bool genMipmaps)
 	{
 		int width, height, nrChannels;
 		
@@ -134,10 +134,11 @@ namespace GLUtility
 		glBindTexture(GL_TEXTURE_2D,texture);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
-		glGenerateMipmap(GL_TEXTURE_2D);
+		if(genMipmaps)
+			glGenerateMipmap(GL_TEXTURE_2D);
 
 		stbi_image_free(data);
 
@@ -502,6 +503,79 @@ namespace GLUtility
 		cubeMesh->name = "Cube Mesh";
 
 		return cubeMesh;
+	}
+
+	std::shared_ptr<Mesh> getSphere(const unsigned int x_seg, const unsigned int y_seg)
+	{
+		std::vector<glm::vec3> positions;
+		std::vector<glm::vec2> uv;
+		std::vector<glm::vec3> normals;
+		std::vector<unsigned int> indices;
+
+		const unsigned int X_SEGMENTS = 64;
+		const unsigned int Y_SEGMENTS = 64;
+		const float PI = 3.14159265359f;
+		for (unsigned int x = 0; x <= X_SEGMENTS; ++x)
+		{
+			for (unsigned int y = 0; y <= Y_SEGMENTS; ++y)
+			{
+				float xSegment = (float)x / (float)X_SEGMENTS;
+				float ySegment = (float)y / (float)Y_SEGMENTS;
+				float xPos = std::cos(xSegment * 2.0f * PI) * std::sin(ySegment * PI);
+				float yPos = std::cos(ySegment * PI);
+				float zPos = std::sin(xSegment * 2.0f * PI) * std::sin(ySegment * PI);
+
+				positions.push_back(glm::vec3(xPos, yPos, zPos));
+				uv.push_back(glm::vec2(xSegment, ySegment));
+				normals.push_back(glm::vec3(xPos, yPos, zPos));
+			}
+		}
+
+		bool oddRow = false;
+		for (unsigned int y = 0; y < Y_SEGMENTS; ++y)
+		{
+			if (!oddRow) // even rows: y == 0, y == 2; and so on
+			{
+				for (unsigned int x = 0; x <= X_SEGMENTS; ++x)
+				{
+					indices.push_back(y * (X_SEGMENTS + 1) + x);
+					indices.push_back((y + 1) * (X_SEGMENTS + 1) + x);
+				}
+			}
+			else
+			{
+				for (int x = X_SEGMENTS; x >= 0; --x)
+				{
+					indices.push_back((y + 1) * (X_SEGMENTS + 1) + x);
+					indices.push_back(y * (X_SEGMENTS + 1) + x);
+				}
+			}
+			oddRow = !oddRow;
+		}
+		//indexCount = static_cast<unsigned int>(indices.size());
+		vector<VertexData> data;
+
+		for (unsigned int i = 0; i < positions.size(); ++i)
+		{
+			VertexData v;
+
+			v.pos = positions[i];
+			if (normals.size() > 0)
+			{
+				v.norm = normals[i];
+			}
+			if (uv.size() > 0)
+			{
+				v.uv=uv[i];
+			}
+			data.push_back(v);
+		}
+
+		auto sphereMesh = std::make_shared<Mesh>(data, indices);
+		sphereMesh->name = "Sphere Mesh";
+		sphereMesh->drawCommand = GL_TRIANGLE_STRIP;
+
+		return sphereMesh;
 	}
 
 	void fillCube(float width, float height, float depth,glm::vec3 color,glm::mat4 tMat, vector<VDPosNormColr>& vData, vector<unsigned int>& iData)

@@ -170,7 +170,7 @@ namespace GLUtility
 	GLuint makeIndexBufferObject(vector<unsigned int> data);
 	GLuint makeVertexArrayObject(GLuint vbo, GLuint ibo);
 	GLuint makeVertexArrayObjectVec3(GLuint vbo, GLuint ibo);
-	GLuint makeTexture(string fileName);
+	GLuint makeTexture(string fileName,bool genMipmaps=true);
 	GLuint makeTexture(string fileName,glm::vec2 &dim);
 	GLuint makeCubeMap(vector<string> faces);
 	unsigned char* getImageData(std::string fileanme, int& width, int& height, int& nChannels);
@@ -183,6 +183,7 @@ namespace GLUtility
 	std::shared_ptr<Mesh> getSimpleTri();
 	std::shared_ptr<Mesh> getTri(std::array<glm::vec3,3> verts);
 	std::shared_ptr<Mesh> getCube(float width, float height, float depth);
+	std::shared_ptr<Mesh> getSphere(const unsigned int x_seg,const unsigned int y_seg);
 	void fillCube(float width, float height, float depth,glm::vec3 color,glm::mat4 tMat, vector<VDPosNormColr> &vData, vector<unsigned int> &iData);
 	void fillCubeforCSG(float width, float height, float depth,glm::mat4 tMat, vector<glm::vec3>& vData, vector<unsigned int>& iData);
 	void fillStarforCSG(float radius, float thickness, vector<glm::vec3>& vData, vector<unsigned int>& iData);
