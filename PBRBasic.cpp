@@ -91,7 +91,7 @@ glm::mat4 globalModelMat = glm::mat4(1);
 
 std::shared_ptr<GlslProgram> pbrProgram;
 std::vector<std::shared_ptr<Mesh>> defaultMatObjs,diffuseMatObjs,pvColrObjs;
-std::shared_ptr<Mesh> lBox,cube;
+std::shared_ptr<Mesh> lBox,sphere;
 std::shared_ptr<FrameBuffer> layer1;
 std::shared_ptr<Texture2D> diffuseTex, specularTex;
 glm::vec3 lightPosition = glm::vec3(5, 6, 0);
@@ -398,7 +398,7 @@ void initGL()
     pbrProps.roughness = 0.5f;
     pbrProps.ao = 1.0f;
 
-    assert(basicProgram->programID);
+    assert(pbrProgram->programID);
 
     setupScene();
     setupCamera();
@@ -453,7 +453,7 @@ void initImgui()
 
 void setupCamera() {
 
-    auto eye = glm::vec3(0, 2.5, 4);
+    auto eye = glm::vec3(0, 2.5, 8);
     auto center = glm::vec3(0, 1, 0);
     auto up = glm::vec3(0, 1, 0);
     camera = std::make_shared<Camera>(eye,center,up);
@@ -463,8 +463,8 @@ void setupCamera() {
 
 void setupScene()
 {
-   
-    cube = GLUtility::getCube(2, 2, 2);
+    //cube = GLUtility::getCube(2, 2, 2);
+    sphere = GLUtility::getSphere(0,0);
 }
 
 std::shared_ptr<FrameBuffer> getFboMSA(std::shared_ptr<FrameBuffer> refFbo, int samples)
@@ -543,23 +543,23 @@ void renderFrame()
     
     {
         pbrProgram->setVec3f("camPos", camera->eye);
-        pbrProgram->setVec3f("albedo", glm::vec3(0.7, 0.1, 0.1));
+        pbrProgram->setVec3f("albedo", glm::vec3(0.5, 0.0, 0.0));
         pbrProgram->setFloat("metallic", pbrProps.metallic);
         pbrProgram->setFloat("roughness", pbrProps.roughness);
         pbrProgram->setFloat("ao", pbrProps.ao);
 
-        const std::vector<glm::vec3> lPos = {camera->eye+glm::vec3(-1,1,0),camera->eye + glm::vec3(1,1,0),
-            camera->eye + glm::vec3(-1,-1,0),camera->eye + glm::vec3(1,-1,0) };
-        const std::vector<glm::vec3> lCols = { glm::vec3(30),glm::vec3(30) ,glm::vec3(30) ,glm::vec3(30) };
+        const std::vector<glm::vec3> lPos = {camera->eye+glm::vec3(-10,10,0),camera->eye + glm::vec3(10,10,0),
+            camera->eye + glm::vec3(-10,-10,0),camera->eye + glm::vec3(10,-10,0) };
+        const std::vector<glm::vec3> lCols = { glm::vec3(300),glm::vec3(300) ,glm::vec3(300) ,glm::vec3(300) };
         pbrProgram->setVec3f("lightPositions", lPos);
         pbrProgram->setVec3f("lightColors", lCols);
 
-        mv = cube->tMatrix * globalModelMat;
+        mv = sphere->tMatrix * globalModelMat;
         auto normlMat = glm::transpose(glm::inverse(mv));
         pbrProgram->setMat4f("model", mv);
         pbrProgram->setMat4f("nrmlMat", normlMat);
         pbrProgram->bindAllUniforms();
-        cube->draw();
+        sphere->draw();
     }
 
 

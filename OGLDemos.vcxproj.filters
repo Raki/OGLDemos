@@ -63,7 +63,7 @@
     <ClCompile Include="imgui-1.88\imgui_tables.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
-    <ClCompile Include="PBR.cpp">
+    <ClCompile Include="PBRBasic.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
