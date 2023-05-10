@@ -93,7 +93,7 @@ std::shared_ptr<GlslProgram> pbrProgram,equi2CubeMapPrgm,envmapPrgm;
 std::vector<std::shared_ptr<Mesh>> defaultMatObjs,diffuseMatObjs,pvColrObjs;
 std::shared_ptr<Mesh> lBox,sphere,cube;
 std::shared_ptr<FrameBuffer> layer1;
-std::shared_ptr<Texture2D> diffuseTex, specularTex, iblTex;
+std::shared_ptr<Texture2D> diffuseTex, specularTex, iblTex,cubemapTex;
 glm::vec3 lightPosition = glm::vec3(5, 6, 0);
 
 struct Framebuffer
@@ -500,6 +500,8 @@ void setupCubeMap()
     unsigned int envCubemap;
     glGenTextures(1, &envCubemap);
     glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
+    cubemapTex = std::make_shared<Texture2D>();
+    cubemapTex->texture = envCubemap;
     for (unsigned int i = 0; i < 6; ++i)
     {
         // note that we store each face with 16 bit floating point values
@@ -667,7 +669,7 @@ void renderFrame()
 
     glActiveTexture(GL_TEXTURE0);
     envmapPrgm->setInt("environmentMap", 0);
-    glBindTexture(GL_TEXTURE_2D, iblTex->texture);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTex->texture);
     envmapPrgm->bindAllUniforms();
 
     cube->draw();
