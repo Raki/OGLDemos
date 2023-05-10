@@ -172,6 +172,7 @@ namespace GLUtility
 	GLuint makeVertexArrayObjectVec3(GLuint vbo, GLuint ibo);
 	GLuint makeTexture(string fileName,bool genMipmaps=true);
 	GLuint makeTexture(string fileName,glm::vec2 &dim);
+	GLuint makeHDRTex(const string fileName);
 	GLuint makeCubeMap(vector<string> faces);
 	unsigned char* getImageData(std::string fileanme, int& width, int& height, int& nChannels);
 	void freeImageData(unsigned char* data);
