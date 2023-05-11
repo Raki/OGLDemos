@@ -89,11 +89,11 @@ glm::mat4 globalModelMat = glm::mat4(1);
 
 
 
-std::shared_ptr<GlslProgram> pbrProgram,equi2CubeMapPrgm,envmapPrgm;
+std::shared_ptr<GlslProgram> pbrProgram,equi2CubeMapPrgm,envmapPrgm,irradiancePrgm;
 std::vector<std::shared_ptr<Mesh>> defaultMatObjs,diffuseMatObjs,pvColrObjs;
 std::shared_ptr<Mesh> lBox,sphere,cube;
 std::shared_ptr<FrameBuffer> layer1;
-std::shared_ptr<Texture2D> diffuseTex, specularTex, iblTex,cubemapTex;
+std::shared_ptr<Texture2D> diffuseTex, specularTex, iblTex,cubemapTex,irrdianceTex;
 glm::vec3 lightPosition = glm::vec3(5, 6, 0);
 
 struct Framebuffer
@@ -394,7 +394,7 @@ void initGL()
     glClearColor(0.1f, 0.2f, 0.3f, 1.0f);
 
     auto vsStr = Utility::readFileContents("shaders/vPBRBasic.glsl");
-    auto fsStr = Utility::readFileContents("shaders/fPBR.glsl");
+    auto fsStr = Utility::readFileContents("shaders/fPBRIBLDiffuse.glsl");
     pbrProgram = std::make_shared<GlslProgram>(vsStr, fsStr);
     pbrProps.metallic = 0.5f;
     pbrProps.roughness = 0.5f;
@@ -413,6 +413,11 @@ void initGL()
     envmapPrgm = std::make_shared<GlslProgram>(vsEvStr, fsEvStr);
 
     assert(envmapPrgm->programID);
+
+    auto fsEv2IrrStr = Utility::readFileContents("shaders/fEnvmap2Irradiance.glsl");
+    irradiancePrgm = std::make_shared<GlslProgram>(vsE2CStr, fsEv2IrrStr);
+
+    assert(irradiancePrgm->programID);
 
     setupScene();
     setupCamera();
@@ -546,6 +551,48 @@ void setupCubeMap()
     }
     equi2CubeMapPrgm->unbind();
 
+
+    unsigned int irradianceMap;
+    glGenTextures(1, &irradianceMap);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap);
+    irrdianceTex = std::make_shared<Texture2D>();
+    irrdianceTex->texture = irradianceMap;
+    for (unsigned int i = 0; i < 6; ++i)
+    {
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 32, 32, 0,
+            GL_RGB, GL_FLOAT, nullptr);
+    }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+    glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 32, 32);
+
+    // convert HDR equirectangular environment map to cubemap equivalent
+    irradiancePrgm->bind();
+    irradiancePrgm->setInt("environmentMap", 0);
+    irradiancePrgm->setMat4f("proj", captureProjection);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
+
+    glViewport(0, 0, 512, 512); // don't forget to configure the viewport to the capture dimensions.
+    glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+    for (unsigned int i = 0; i < 6; ++i)
+    {
+        irradiancePrgm->setMat4f("view", captureViews[i]);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+            GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, irradianceMap, 0);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        irradiancePrgm->bindAllUniforms();
+
+        cube->draw(); // renders a 1x1 cube
+    }
+    irradiancePrgm->unbind();
+
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, WIN_WIDTH, WIN_HEIGHT);
 }
@@ -642,6 +689,10 @@ void renderFrame()
         glActiveTexture(GL_TEXTURE0 + 3);
         pbrProgram->setInt("roughnessMap", 3);
         glBindTexture(GL_TEXTURE_2D, pbrProps.roughnessTex->texture);
+
+        glActiveTexture(GL_TEXTURE0 + 4);
+        pbrProgram->setInt("irradianceMap", 4);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, irrdianceTex->texture);
         pbrProgram->setFloat("ao", pbrProps.ao);
 
         const std::vector<glm::vec3> lPos = {camera->eye+glm::vec3(-10,10,0),camera->eye + glm::vec3(10,10,0),
