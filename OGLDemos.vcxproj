@@ -26,7 +26,7 @@
     <ClCompile Include="imgui-1.88\imgui_draw.cpp" />
     <ClCompile Include="imgui-1.88\imgui_tables.cpp" />
     <ClCompile Include="imgui-1.88\imgui_widgets.cpp" />
-    <ClCompile Include="PBRIBLDiffuse.cpp" />
+    <ClCompile Include="PBRIBLDiffuseSpecular.cpp" />
     <ClCompile Include="utils\Camera.cpp" />
     <ClCompile Include="utils\Colors.cpp" />
     <ClCompile Include="utils\GLMaterial.cpp" />
