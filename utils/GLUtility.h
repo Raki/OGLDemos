@@ -109,6 +109,7 @@ namespace GLUtility
 		vector<glm::vec3> vDataVec3;
 		vector<VertexData> vData;
 		vector<VDPosNormColr> vdPosNrmClr;
+		vector<VDPosUV> vdPosUv;
 		vector<unsigned int> iData;
 		vector<Texture> textures;
 
@@ -127,6 +128,7 @@ namespace GLUtility
 
 		Mesh(vector<VertexData> vData, vector<unsigned int> iData);
 		Mesh(vector<VDPosNormColr> vData, vector<unsigned int> iData);
+		Mesh(vector<VDPosUV> vData, vector<unsigned int> iData);
 		Mesh(vector<glm::vec3> vData, vector<unsigned int> iData);
 		Mesh(vector<VertexData> vData, vector<unsigned int> iData,vector<Texture> textures);
 		void updateIbo();
@@ -165,6 +167,7 @@ namespace GLUtility
 
 
 	GLuint makeVetexBufferObject(vector<VertexData> data);
+	GLuint makeVetexBufferObject(vector<VDPosUV> data);
 	GLuint makeVetexBufferObject(vector<VDPosNormColr> data);
 	GLuint makeVetexBufferObject(vector<glm::vec3> data);
 	GLuint makeIndexBufferObject(vector<unsigned int> data);
@@ -172,7 +175,7 @@ namespace GLUtility
 	GLuint makeVertexArrayObjectVec3(GLuint vbo, GLuint ibo);
 	GLuint makeTexture(string fileName,bool genMipmaps=true);
 	GLuint makeTexture(string fileName,glm::vec2 &dim);
-	GLuint makeHDRTex(const string fileName);
+	GLuint makeHDRTex(const string fileName, bool genMipmaps = false);
 	GLuint makeCubeMap(vector<string> faces);
 	unsigned char* getImageData(std::string fileanme, int& width, int& height, int& nChannels);
 	void freeImageData(unsigned char* data);
@@ -208,6 +211,8 @@ namespace GLUtility
 	* Returns a fullscreen quad mesh
 	*/
 	std::shared_ptr<Mesh> getfsQuad();
+
+	std::shared_ptr<Mesh> getfsQuadV2();
 
 
 	/*

@@ -17,6 +17,15 @@ namespace GLUtility
 		return buffer;
 	}
 
+	GLuint makeVetexBufferObject(vector<VDPosUV> data)
+	{
+		GLuint buffer;
+		glGenBuffers(1, &buffer);
+		glBindBuffer(GL_ARRAY_BUFFER, buffer);
+		glBufferData(GL_ARRAY_BUFFER, data.size() * sizeof(VDPosUV), data.data(), GL_STATIC_DRAW);
+		return buffer;
+	}
+
 	GLuint makeVetexBufferObject(vector<VDPosNormColr> data)
 	{
 		GLuint buffer;
@@ -178,7 +187,7 @@ namespace GLUtility
 		return texture;
 	}
 
-	GLuint makeHDRTex(const string fileName)
+	GLuint makeHDRTex(const string fileName, bool genMipmaps)
 	{
 		int width, height, nrComponents;
 		stbi_set_flip_vertically_on_load(1);
@@ -194,6 +203,9 @@ namespace GLUtility
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+			if(genMipmaps)
+				glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
 
 			stbi_image_free(data);
 		}
@@ -1181,6 +1193,22 @@ namespace GLUtility
 		return triMesh;
 	}
 
+	std::shared_ptr<Mesh> getfsQuadV2()
+	{
+		vector<VDPosUV> vData = {
+			{glm::vec3(-1,-1,0),glm::vec2(0,1)},
+			{glm::vec3(1,-1,0),glm::vec2(0,0)},
+			{glm::vec3(1,1,0),glm::vec2(1,1)},
+			{glm::vec3(-1,1,0),glm::vec2(1,0)}
+		};
+		vector<unsigned int> iData = { 0,1,2,0,2,3 };
+
+		auto triMesh = std::make_shared<Mesh>(vData, iData);
+		triMesh->name = "Full screen quad";
+
+		return triMesh;
+	}
+
 	std::shared_ptr<Mesh> getRect(float width, float height, int gridX, int gridY)
 	{
 
@@ -1444,6 +1472,28 @@ namespace GLUtility
 		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(VDPosNormColr), (void*)sizeof(glm::vec3));
 		glEnableVertexAttribArray(2);
 		glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(VDPosNormColr), (void*)(sizeof(glm::vec3) * 2));
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindVertexArray(0);
+		drawCount = (unsigned int)iData.size();
+		tMatrix = glm::mat4(1);
+		trans = glm::mat4(1);
+		rot = glm::mat4(1);
+		scle = glm::mat4(1);
+	}
+
+	Mesh::Mesh(vector<VDPosUV> vData, vector<unsigned int> iData)
+	{
+		this->vdPosUv = vData;
+		this->iData = iData;
+		vbo = makeVetexBufferObject(this->vdPosUv);
+		ibo = makeIndexBufferObject(iData);
+		glGenVertexArrays(1, &vao);
+		glBindVertexArray(vao);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo);
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(VDPosUV), (void*)0);
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(VDPosUV), (void*)sizeof(glm::vec3));
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glBindVertexArray(0);
 		drawCount = (unsigned int)iData.size();
