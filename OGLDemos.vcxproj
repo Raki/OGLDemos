@@ -26,7 +26,7 @@
     <ClCompile Include="imgui-1.88\imgui_draw.cpp" />
     <ClCompile Include="imgui-1.88\imgui_tables.cpp" />
     <ClCompile Include="imgui-1.88\imgui_widgets.cpp" />
-    <ClCompile Include="PBRIBLDiffuseSpecular.cpp" />
+    <ClCompile Include="Transformations.cpp" />
     <ClCompile Include="utils\Camera.cpp" />
     <ClCompile Include="utils\Colors.cpp" />
     <ClCompile Include="utils\GLMaterial.cpp" />
@@ -161,7 +161,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opengl32.lib;glew32d.lib;glfw3dll.lib;tinyobjloader.lib;mcutd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;glew32d.lib;glfw3dll.lib;tinyobjloader.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>lib/Debug</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>

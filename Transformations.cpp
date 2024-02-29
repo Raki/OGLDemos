@@ -457,13 +457,13 @@ void setupScene()
     defaultMatObjs.push_back(triMesh);
     
 
-    auto obj2 = loadObjModel("assets/test/cube - Copy.obj");
+    auto obj2 = loadObjModel("assets/trs.obj");
     obj2->bBox->tMatrix = obj2->tMatrix;
     objModels.push_back(obj2);
 
-    auto normlMesh = GLUtility::getNrmlMesh(obj2->objParts.at(0)->mesh);
+    /*auto normlMesh = GLUtility::getNrmlMesh(obj2->objParts.at(0)->mesh);
     normlMesh->color = glm::vec4(Color::lightOrange, 1);
-    defaultMatObjs.push_back(normlMesh);
+    defaultMatObjs.push_back(normlMesh);*/
 }
 
 
