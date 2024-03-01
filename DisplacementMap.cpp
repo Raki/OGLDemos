@@ -364,7 +364,9 @@ void initGL()
     glViewport(0, 0, WIN_WIDTH, WIN_HEIGHT);
     glClearColor(0.1f, 0.2f, 0.3f, 1.0f);
 
-    dirLightProgram = std::make_shared<GlslProgram>(Utility::readFileContents("shaders/dmap/vMatSpotLight.glsl"), Utility::readFileContents("shaders/dmap/fMatSpotLight.glsl"));
+    dirLightProgram = std::make_shared<GlslProgram>(Utility::readFileContents("shaders/dmap/vMatSpotLight.glsl"),
+        Utility::readFileContents("shaders/dmap/gMatSpotLight.glsl"),
+        Utility::readFileContents("shaders/dmap/fMatSpotLight.glsl"));
     basicProgram = std::make_shared<GlslProgram>(Utility::readFileContents("shaders/vBasic.glsl"), Utility::readFileContents("shaders/fBasic.glsl"));
     
     
@@ -433,11 +435,11 @@ void setupScene()
 
     fsQuad = GLUtility::getfsQuad();
 
-    auto floor = GLUtility::get2DRect(7.0f, 7.0f);
+    /*auto floor = GLUtility::get2DRect(7.0f, 7.0f);
     auto trans = glm::translate(glm::mat4(1),glm::vec3(0,-1,0));
     floor->tMatrix = trans*glm::rotate(glm::mat4(1), glm::radians(-90.0f), GLUtility::X_AXIS);
     floor->color = glm::vec4(Color::grey, 1.0);
-    scenObjects.push_back(floor);
+    scenObjects.push_back(floor);*/
 
 
     lBox = GLUtility::getCubeVec3(0.2f, 0.2f, 0.2f);
@@ -445,7 +447,7 @@ void setupScene()
     lBox->tMatrix = glm::translate(glm::mat4(1), light.position);
     lBox->pickColor = glm::vec4(1.0);
 
-    auto grid = GLUtility::getRect(4, 4, 100, 100);
+    auto grid = GLUtility::getRect(4, 4, 200, 200);
     grid->color = glm::vec4(Color::blue,1.0);
     grid->tMatrix = glm::translate(glm::mat4(1), glm::vec3(0,0,0));
     grid->pickColor = glm::vec4(Color::blue, 1.0);
@@ -549,7 +551,7 @@ void updateFrame()
    
     //scenObjects.at(2)->tMatrix = glm::translate(glm::mat4(1), glm::vec3(bluePos[0], bluePos[1], bluePos[2]));
     //scenObjects.at(1)->tMatrix = glm::translate(glm::mat4(1), glm::vec3(orangePos[0], orangePos[1], orangePos[2]));
-    light.position.x = sin(glm::radians((float)t))*5;
+    light.position.x = sin(glm::radians((float)t))*2;
     camera->orbitY(glm::radians(gRotation));
     lBox->tMatrix = glm::translate(glm::mat4(1), light.position);
 
@@ -717,7 +719,7 @@ void renderImgui()
 
     {
         ImGui::Begin("Light params");
-        ImGui::SliderFloat3("Position", &light.position[0], -5, 5);
+        ImGui::SliderFloat3("Position", &light.position[0], -2, 2);
         ImGui::SliderFloat3("Ambient", &light.ambient[0], 0, 1);
         ImGui::SliderFloat3("Diffuse", &light.diffuse[0], 0, 1);
         

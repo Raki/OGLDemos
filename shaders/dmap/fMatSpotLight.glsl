@@ -26,9 +26,15 @@ struct Light {
 
 out vec4 fragColor;
 
-in vec3 normal_out;
-in vec3 fragPos;
-in vec2 uv_out;
+in GS_OUT
+{
+	vec3 normal;
+	vec3 fragPos;
+	vec2 uv;
+}fs_in;
+//in vec3 normal_out;
+//in vec3 fragPos;
+//in vec2 uv_out;
 
 uniform vec3 viewPos;
 uniform Material material;
@@ -36,6 +42,10 @@ uniform Light light;
 
 void main()
 {
+	vec3 normal_out = fs_in.normal;
+	vec3 fragPos = fs_in.fragPos;
+	vec2 uv_out = fs_in.uv;
+
 	vec3 result;
 	vec3 lightDir = normalize(light.position - fragPos);  
 	float theta = dot(lightDir,-light.direction);
