@@ -377,7 +377,7 @@ void initGL()
 
     auto diffTex = GLUtility::makeTexture("img/container_diffuse.png");
     auto specTex = GLUtility::makeTexture("img/container_specular.png");
-    auto dispTex = GLUtility::makeTexture("img/smile/smile.png");
+    auto dispTex = GLUtility::makeTexture("img/smile/stars.png");
     diffuseTex = std::make_shared<Texture2D>();
     diffuseTex->texture = diffTex;
     specularTex = std::make_shared<Texture2D>();
