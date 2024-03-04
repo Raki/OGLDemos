@@ -221,7 +221,7 @@ namespace GLUtility
 	* @param gridX indicates no of grids in width
 	* @param girdY indicates no of grids in height
 	*/
-	std::shared_ptr<Mesh> getRect(float width, float height, int gridX,int gridY);
+	std::shared_ptr<Mesh> getRect(float width, float height, int gridX,int gridY,const bool &patches=false);
 
 	/*
 	* @param xRad x radius of HemiSphere

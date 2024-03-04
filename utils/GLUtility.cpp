@@ -1209,7 +1209,7 @@ namespace GLUtility
 		return triMesh;
 	}
 
-	std::shared_ptr<Mesh> getRect(float width, float height, int gridX, int gridY)
+	std::shared_ptr<Mesh> getRect(float width, float height, int gridX, int gridY,const bool& patches)
 	{
 
 		if(height*width*gridX*gridY<=0)
@@ -1264,8 +1264,16 @@ namespace GLUtility
 				vData.at(v4Ind).norm += n2;
 				vData.at(v4Ind).norm /= 2.0f;
 
-				iData.push_back(v1Ind); iData.push_back(v4Ind); iData.push_back(v3Ind);
-				iData.push_back(v1Ind); iData.push_back(v2Ind); iData.push_back(v4Ind);
+				if (!patches)
+				{
+					iData.push_back(v1Ind); iData.push_back(v4Ind); iData.push_back(v3Ind);
+					iData.push_back(v1Ind); iData.push_back(v2Ind); iData.push_back(v4Ind);
+				}
+				else
+				{
+					iData.push_back(v1Ind); iData.push_back(v2Ind); 
+					iData.push_back(v3Ind); iData.push_back(v4Ind);
+				}
 
 			}
 		}
