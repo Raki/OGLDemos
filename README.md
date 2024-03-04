@@ -67,4 +67,7 @@ Orient object towards given vector
 
 ![image](https://github.com/Raki/OGLDemos/assets/824691/b6b4292b-d4fb-4923-9949-d2821d6747bc)
 
+* Displacement map (Vertex + Tessellation + Geometry + Fragment stages)
+
+![image](https://github.com/Raki/OGLDemos/assets/824691/83cfe7a0-0ca0-4657-a090-25a1b2c5548a)
 
