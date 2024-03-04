@@ -8,6 +8,8 @@
 #include "Camera.h"
 using namespace GLUtility;
 
+//#define USE_GEOMETRY_SHADER
+
 #pragma region vars
 
 const int WIN_WIDTH = 1920;
@@ -48,6 +50,7 @@ struct DebugParams
 {
     bool wireFrameMode = false;
     float depth = 0.25f;
+    int tessLevel = 16;
 };
 
 GLFWwindow* window;
@@ -364,9 +367,11 @@ void initGL()
     glViewport(0, 0, WIN_WIDTH, WIN_HEIGHT);
     glClearColor(0.1f, 0.2f, 0.3f, 1.0f);
 
-    dirLightProgram = std::make_shared<GlslProgram>(Utility::readFileContents("shaders/dmap/vMatSpotLight.glsl"),
-        Utility::readFileContents("shaders/dmap/gMatSpotLight.glsl"),
-        Utility::readFileContents("shaders/dmap/fMatSpotLight.glsl"));
+    dirLightProgram = std::make_shared<GlslProgram>(Utility::readFileContents("shaders/dmap/tess/vert.glsl"),
+    Utility::readFileContents("shaders/dmap/tess/tcs.glsl"),
+    Utility::readFileContents("shaders/dmap/tess/tes.glsl"),
+    Utility::readFileContents("shaders/dmap/tess/geom.glsl"),
+    Utility::readFileContents("shaders/dmap/tess/fMatSpotLight.glsl"));
     basicProgram = std::make_shared<GlslProgram>(Utility::readFileContents("shaders/vBasic.glsl"), Utility::readFileContents("shaders/fBasic.glsl"));
     
     
@@ -435,22 +440,27 @@ void setupScene()
 
     fsQuad = GLUtility::getfsQuad();
 
-    /*auto floor = GLUtility::get2DRect(7.0f, 7.0f);
-    auto trans = glm::translate(glm::mat4(1),glm::vec3(0,-1,0));
-    floor->tMatrix = trans*glm::rotate(glm::mat4(1), glm::radians(-90.0f), GLUtility::X_AXIS);
-    floor->color = glm::vec4(Color::grey, 1.0);
-    scenObjects.push_back(floor);*/
-
 
     lBox = GLUtility::getCubeVec3(0.2f, 0.2f, 0.2f);
     lBox->color = glm::vec4(1.0);
     lBox->tMatrix = glm::translate(glm::mat4(1), light.position);
     lBox->pickColor = glm::vec4(1.0);
 
-    auto grid = GLUtility::getRect(4, 4, 200, 200);
+    auto grid = GLUtility::getRect(4, 4, 16, 16,true);
     grid->color = glm::vec4(Color::blue,1.0);
     grid->tMatrix = glm::translate(glm::mat4(1), glm::vec3(0,0,0));
     grid->pickColor = glm::vec4(Color::blue, 1.0);
+    grid->drawCommand = GL_PATCHES;
+
+    vector<VertexData> vDataGrid = {
+            {glm::vec3(-2,-2,0.0),glm::vec3(0,0,1),glm::vec2(0,0)},
+            {glm::vec3(2,-2,0.0),glm::vec3(0,0,1),glm::vec2(1,0)},
+            {glm::vec3(2,2,0.0),glm::vec3(0,0,1),glm::vec2(1,1)},
+            {glm::vec3(-2,2,0.0),glm::vec3(0,0,1),glm::vec2(0,1)}
+    };
+
+
+    vector<unsigned int> iDataGrid = { 0,1,3,2 };
 
     vector<VertexData> vData = {
             {glm::vec3(-0.5,-0.5,0.5),glm::vec3(0,0,1),glm::vec2(0,0)},
@@ -464,6 +474,13 @@ void setupScene()
     triMesh->color = glm::vec4(Color::brown, 1.0);
     triMesh->pickColor = glm::vec4(Color::brown, 1.0);
     triMesh->tMatrix = glm::translate(glm::mat4(1), glm::vec3(-4, 4, 0));
+
+    auto quadMesh = std::make_shared<Mesh>(vDataGrid, iDataGrid);
+    quadMesh->name = "Simple Quad";
+    quadMesh->color = glm::vec4(Color::brown, 1.0);
+    quadMesh->pickColor = glm::vec4(Color::brown, 1.0);
+    quadMesh->drawCommand = GL_PATCHES;
+    glPatchParameteri(GL_PATCH_VERTICES, 4);
 
     auto tri = GLUtility::getSimpleTri();
     tri->color = glm::vec4(1, 0, 0, 1);
@@ -585,6 +602,7 @@ void renderFrame()
 
     dirLightProgram->setFloat("material.shininess", 64.0f);
     dirLightProgram->setFloat("depth", dParams.depth);
+    dirLightProgram->setInt("tessLevel", dParams.tessLevel);
 
     auto lightColor = Color::white;
     glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f); // decrease the influence
@@ -616,6 +634,10 @@ void renderFrame()
         dirLightProgram->bindAllUniforms();
 
         obj->draw();
+        //glBindVertexArray(obj->vao);
+
+        //glDrawArrays(obj->drawCommand,0, obj->drawCount);
+        //glBindVertexArray(0);
     }
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     
@@ -734,6 +756,7 @@ void renderImgui()
         
         ImGui::Checkbox("WireFrameMode", &dParams.wireFrameMode);
         ImGui::SliderFloat("Depth", &dParams.depth, 0, 1);
+        ImGui::SliderInt("Tess level", &dParams.tessLevel, 1, 100);
 
         ImGui::End();
     }

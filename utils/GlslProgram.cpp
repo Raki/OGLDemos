@@ -107,6 +107,74 @@ GlslProgram::GlslProgram(string vShaderStr, string gShaderStr, string fShaderStr
 	}
 }
 
+GlslProgram::GlslProgram(const string& vShaderStr, const string& tcs, const string& tes, const string& gShaderStr, const string& fShaderStr)
+{
+	if (vShaderStr.size() == 0) std::cout << "Empty vertex shader \n";
+	if (tcs.size() == 0) std::cout << "Empty tcs shader \n";
+	if (tes.size() == 0) std::cout << "Empty tes shader \n";
+	if (gShaderStr.size() == 0) std::cout << "Empty geometry shader \n";
+	if (fShaderStr.size() == 0) std::cout << "Empty fragment shader \n";
+
+	vShaderID = createShader(vShaderStr, GL_VERTEX_SHADER);
+	tcsShaderID = createShader(tcs, GL_TESS_CONTROL_SHADER);
+	tesShaderID = createShader(tes, GL_TESS_EVALUATION_SHADER);
+	fShaderID = createShader(fShaderStr, GL_FRAGMENT_SHADER);
+	
+	//Testing code clean it	
+	if (gShaderStr.size() > 0)
+		gShaderID = createShader(gShaderStr, GL_GEOMETRY_SHADER);
+	else
+		gShaderID = 0;
+	//Testing code clean it
+	if (vShaderID > 0 && fShaderID > 0 && tcsShaderID> 0 && tesShaderID > 0)
+	{
+		programID = glCreateProgram();
+		glAttachShader(programID, vShaderID);
+		glAttachShader(programID, tcsShaderID);
+		glAttachShader(programID, tesShaderID);
+		if(fShaderID>0)
+			glAttachShader(programID, fShaderID);
+		glAttachShader(programID, gShaderID);
+		glLinkProgram(programID);
+
+		GLint isLinked = 0;
+		glGetProgramiv(programID, GL_LINK_STATUS, &isLinked);
+		if (isLinked == GL_FALSE)
+		{
+			GLint maxLength = 0;
+			glGetProgramiv(programID, GL_INFO_LOG_LENGTH, &maxLength);
+
+			if (maxLength > 0)
+			{
+				// The maxLength includes the NULL character
+				std::vector<GLchar> infoLog(maxLength);
+				glGetProgramInfoLog(programID, maxLength, &maxLength, &infoLog[0]);
+
+				freeShaders();
+				// The program is useless now. So delete it.
+				glDeleteProgram(programID);
+
+				// Provide the infolog in whatever manner you deem best.
+				// Exit with failure.
+				std::cout << "program linking error : \n" << infoLog.data() << '\n';
+				programID = 0;
+			}
+			else
+			{
+				freeShaders();
+				// The program is useless now. So delete it.
+				glDeleteProgram(programID);
+				std::cout << "program linking error : no log string" << '\n';
+			}
+		}
+		else
+		{
+			// Always detach shaders after a successful link.
+			freeShaders();
+		}
+	}
+}
+
 //for compute shader
 GlslProgram::GlslProgram(string cShaderStr)
 {
@@ -202,6 +270,10 @@ void GlslProgram::freeShaders()
 			glDetachShader(programID, this->cShaderID);
 		if (gShaderID > 0)
 			glDetachShader(programID, this->gShaderID);
+		if (tcsShaderID > 0)
+			glDetachShader(programID, this->gShaderID);
+		if (tesShaderID > 0)
+			glDetachShader(programID, this->gShaderID);
 	}
 
 	if (vShaderID > 0)
@@ -224,6 +296,16 @@ void GlslProgram::freeShaders()
 	{
 		glDeleteShader(gShaderID);
 		gShaderID = 0;
+	}
+	if (tcsShaderID > 0)
+	{
+		glDeleteShader(tcsShaderID);
+		tcsShaderID = 0;
+	}
+	if (tesShaderID> 0)
+	{
+		glDeleteShader(tesShaderID);
+		tesShaderID = 0;
 	}
 }
 
