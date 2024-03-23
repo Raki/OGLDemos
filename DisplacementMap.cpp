@@ -66,7 +66,7 @@ glm::mat4 globalModelMat = glm::mat4(1);
 
 
 
-std::shared_ptr<GlslProgram> dirLightProgram,basicProgram;
+std::shared_ptr<GlslProgram> dirLightProgram,basicProgram, geomNormProgram;
 std::vector<std::shared_ptr<Mesh>> scenObjects,defaultMatObjs;
 std::shared_ptr<Mesh> fsQuad,lBox,pickBox;
 std::shared_ptr<FrameBuffer> layer1,layer2;
@@ -133,6 +133,7 @@ void renderImgui();
 
 std::shared_ptr<ObjContainer> loadObjModel(std::string filePath,std::string defaultDiffuse="assets/textures/default.jpg");
 
+void updateVertexBuffer(const std::shared_ptr<Mesh> mesh, const std::vector<unsigned int>& indices);
 
 #pragma endregion
 
@@ -302,6 +303,51 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
             }
         }
 
+        for (auto& obj : scenObjects)
+        {
+            if (obj->drawCommand == GL_PATCHES)
+            {
+                const auto& boxVData = obj->vdPosNormUvTess;
+                const auto& boxIData = obj->iData;
+                float dist = 10000;
+                int hitCount = 0;
+                for (auto i = 0; i < boxIData.size(); i += 4)
+                {
+                    auto v1 =  boxVData.at(boxIData.at(i)).pos;
+                    auto v2 =  boxVData.at(boxIData.at(i + 1)).pos;
+                    auto v3 =  boxVData.at(boxIData.at(i + 2)).pos;
+                    auto v4 =  boxVData.at(boxIData.at(i + 3)).pos;
+                    v1 = glm::vec3(obj->tMatrix * glm::vec4(v1, 1));
+                    v2 = glm::vec3(obj->tMatrix * glm::vec4(v2, 1));
+                    v3 = glm::vec3(obj->tMatrix * glm::vec4(v3, 1));
+
+                    //1,4,3
+                    //1,2,4
+                    tri.push_back(v1);
+                    tri.push_back(v4);
+                    tri.push_back(v3);
+                    vector<glm::vec3> tri2{v1,v2,v4};
+                    glm::vec3 intr;
+                    if (GLUtility::intersects3D_RayTrinagle(ray, tri, intr) == 1)
+                    {
+                        obj->color = glm::vec4(Color::purple, 1.0);
+                        std::cout << intr.x << " " << intr.y << " " << intr.z <<" i "<<i<<cendl;
+                        updateVertexBuffer(obj, { (unsigned int)i });
+                        hitCount += 1;
+                    }
+                    else if(GLUtility::intersects3D_RayTrinagle(ray, tri2, intr) == 1)
+                    {
+                        std::cout << intr.x << " " << intr.y << " " << intr.z << " i " << i << cendl;
+                        updateVertexBuffer(obj, { (unsigned int)i });
+                        hitCount += 1;
+                        // blueBox->color = glm::vec4(Color::red, 1.0);
+                    }
+                    tri.clear();
+                }
+            }
+        }
+
+
         capturePos = true;
     }
 }
@@ -367,14 +413,19 @@ void initGL()
     glViewport(0, 0, WIN_WIDTH, WIN_HEIGHT);
     glClearColor(0.1f, 0.2f, 0.3f, 1.0f);
 
-    dirLightProgram = std::make_shared<GlslProgram>(Utility::readFileContents("shaders/dmap/tess/vert.glsl"),
-    Utility::readFileContents("shaders/dmap/tess/tcs.glsl"),
+    dirLightProgram = std::make_shared<GlslProgram>(Utility::readFileContents("shaders/dmap/selective-tess/vert.glsl"),
+    Utility::readFileContents("shaders/dmap/selective-tess/tcs.glsl"),
     Utility::readFileContents("shaders/dmap/tess/tes.glsl"),
     Utility::readFileContents("shaders/dmap/tess/geom.glsl"),
     Utility::readFileContents("shaders/dmap/tess/fMatSpotLight.glsl"));
     basicProgram = std::make_shared<GlslProgram>(Utility::readFileContents("shaders/vBasic.glsl"), Utility::readFileContents("shaders/fBasic.glsl"));
     
-    
+    geomNormProgram = std::make_shared<GlslProgram>(
+        Utility::readFileContents("shaders/gs/vNorm.glsl"),
+        Utility::readFileContents("shaders/gs/gNormQuad.glsl"),
+        Utility::readFileContents("shaders/gs/fNorm.glsl")
+    );
+
     setupScene();
     setupCamera();
    
@@ -446,7 +497,7 @@ void setupScene()
     lBox->tMatrix = glm::translate(glm::mat4(1), light.position);
     lBox->pickColor = glm::vec4(1.0);
 
-    auto grid = GLUtility::getRect(4, 4, 16, 16,true);
+    auto grid = GLUtility::getRectTess(4, 4, 16, 16,true);
     grid->color = glm::vec4(Color::blue,1.0);
     grid->tMatrix = glm::translate(glm::mat4(1), glm::vec3(0,0,0));
     grid->pickColor = glm::vec4(Color::blue, 1.0);
@@ -698,6 +749,27 @@ void renderFrame()
     }
 
     basicProgram->unbind();
+
+    /*geomNormProgram->bind();
+    geomNormProgram->setMat4f("view", camera->viewMat);
+    geomNormProgram->setMat4f("proj", projectionMat);
+    geomNormProgram->setVec3f("color", Color::red);
+    for (const auto& obj : scenObjects)
+    {
+        auto mv = obj->tMatrix * globalModelMat;
+        auto nrmlMat = glm::transpose(glm::inverse(mv));
+
+        geomNormProgram->setMat4f("model", mv);
+        geomNormProgram->setMat4f("nrmlMat", nrmlMat);
+
+        geomNormProgram->bindAllUniforms();
+
+        auto temp = obj->drawCommand;
+        obj->drawCommand = GL_QUADS;
+        obj->draw();
+        obj->drawCommand = temp;
+    }
+    geomNormProgram->unbind();*/
 
     
     //blitting
@@ -1001,6 +1073,21 @@ std::shared_ptr<ObjContainer> loadObjModel(std::string filePath,std::string defa
     
     return objContainer;
     //objModels.push_back(objContainer);
+}
+
+void updateVertexBuffer(const std::shared_ptr<Mesh> mesh,const std::vector<unsigned int> &indices)
+{
+    for (auto& i : indices)
+    {
+        for (size_t ind = i; ind < i+4; ind++)
+        {
+            auto &data = mesh->vdPosNormUvTess.at(mesh->iData.at(ind));
+            data.tess = 1;
+        }
+    }
+    glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(VDPosNormUvTess) * mesh->vdPosNormUvTess.size(), mesh->vdPosNormUvTess.data());
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 
