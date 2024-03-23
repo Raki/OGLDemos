@@ -48,6 +48,14 @@ namespace GLUtility
 		glm::vec3 color;
 	};
 
+	struct VDPosNormUvTess
+	{
+		glm::vec3 pos;
+		glm::vec3 norm;
+		glm::vec2 uv;
+		int tess;
+	};
+
 	struct Texture2D
 	{
 		GLuint texture;
@@ -110,6 +118,7 @@ namespace GLUtility
 		vector<VertexData> vData;
 		vector<VDPosNormColr> vdPosNrmClr;
 		vector<VDPosUV> vdPosUv;
+		vector<VDPosNormUvTess> vdPosNormUvTess;
 		vector<unsigned int> iData;
 		vector<Texture> textures;
 
@@ -130,6 +139,7 @@ namespace GLUtility
 		Mesh(vector<VDPosNormColr> vData, vector<unsigned int> iData);
 		Mesh(vector<VDPosUV> vData, vector<unsigned int> iData);
 		Mesh(vector<glm::vec3> vData, vector<unsigned int> iData);
+		Mesh(vector<VDPosNormUvTess> vData, vector<unsigned int> iData);
 		Mesh(vector<VertexData> vData, vector<unsigned int> iData,vector<Texture> textures);
 		void updateIbo();
 		void draw();
@@ -170,6 +180,7 @@ namespace GLUtility
 	GLuint makeVetexBufferObject(vector<VDPosUV> data);
 	GLuint makeVetexBufferObject(vector<VDPosNormColr> data);
 	GLuint makeVetexBufferObject(vector<glm::vec3> data);
+	GLuint makeVetexBufferObject(const vector<VDPosNormUvTess> &data);
 	GLuint makeIndexBufferObject(vector<unsigned int> data);
 	GLuint makeVertexArrayObject(GLuint vbo, GLuint ibo);
 	GLuint makeVertexArrayObjectVec3(GLuint vbo, GLuint ibo);
@@ -222,6 +233,8 @@ namespace GLUtility
 	* @param girdY indicates no of grids in height
 	*/
 	std::shared_ptr<Mesh> getRect(float width, float height, int gridX,int gridY,const bool &patches=false);
+
+	std::shared_ptr<Mesh> getRectTess(float width, float height, int gridX, int gridY, const bool& patches = false);
 
 	/*
 	* @param xRad x radius of HemiSphere

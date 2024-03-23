@@ -44,6 +44,15 @@ namespace GLUtility
 		return buffer;
 	}
 
+	GLuint makeVetexBufferObject(const vector<VDPosNormUvTess> &data)
+	{
+		GLuint buffer;
+		glGenBuffers(1, &buffer);
+		glBindBuffer(GL_ARRAY_BUFFER, buffer);
+		glBufferData(GL_ARRAY_BUFFER, data.size() * sizeof(VDPosNormUvTess), data.data(), GL_STATIC_DRAW);
+		return buffer;
+	}
+
 	GLuint makeIndexBufferObject(vector<unsigned int> data)
 	{
 		GLuint buffer;
@@ -1283,6 +1292,93 @@ namespace GLUtility
 		return rectMesh;
 	}
 
+	std::shared_ptr<Mesh> getRectTess(float width, float height, int gridX, int gridY, const bool& patches)
+	{
+		if (height * width * gridX * gridY <= 0)
+			return std::shared_ptr<Mesh>();
+
+
+		auto origin = glm::vec3(-width / 2, -height / 2, 0);
+		float stepW = width / gridX;
+		float stepH = height / gridY;
+		vector<VDPosNormUvTess> vData;
+		vector<unsigned int> iData;
+		vector<VDPosNormUvTess> dupVData;
+
+		vector<int> lookup{0,10,20,21,22,35,36,37,56,89};
+		// position and texcoords
+		for (int y = 0; y <= gridY; y++)
+		{
+			for (int x = 0; x <= gridX; x++)
+			{
+				auto pos = glm::vec3(x * stepW, y * stepH, 0);
+				pos += origin;
+				auto uv = glm::vec2((x * stepW) / width, (y * stepH) / height);
+				int index = (y * gridX) + x;
+				vData.push_back({ pos,glm::vec3(0),uv,(std::find(lookup.begin(),lookup.end(),index)!=lookup.end())?1:0 });
+			}
+		}
+
+		// normals and indices
+		for (int y = 0; y <= gridY - 1; y++)
+		{
+			for (int x = 0; x <= gridX - 1; x++)
+			{
+				// v3-v4
+				// | /|
+				// |/ |
+				// v1-v2
+
+				auto v1Ind = (y * (gridY + 1)) + x;
+				auto v2Ind = (y * (gridY + 1)) + x + 1;
+				auto v3Ind = ((y + 1) * (gridY + 1)) + x;
+				auto v4Ind = ((y + 1) * (gridY + 1)) + x + 1;
+
+
+				auto n1 = getNormal(vData.at(v1Ind).pos, vData.at(v4Ind).pos, vData.at(v3Ind).pos);
+				vData.at(v1Ind).norm += n1;
+				vData.at(v1Ind).norm /= 2.0f;
+				vData.at(v4Ind).norm += n1;
+				vData.at(v4Ind).norm /= 2.0f;
+				vData.at(v3Ind).norm += n1;
+				vData.at(v3Ind).norm /= 2.0f;
+
+				auto n2 = getNormal(vData.at(v1Ind).pos, vData.at(v2Ind).pos, vData.at(v4Ind).pos);
+				vData.at(v1Ind).norm += n2;
+				vData.at(v1Ind).norm /= 2.0f;
+				vData.at(v2Ind).norm += n2;
+				vData.at(v2Ind).norm /= 2.0f;
+				vData.at(v4Ind).norm += n2;
+				vData.at(v4Ind).norm /= 2.0f;
+
+				/*dupVData.push_back(vData.at(v1Ind));
+				iData.push_back(iData.size());
+				dupVData.push_back(vData.at(v2Ind));
+				iData.push_back(iData.size());
+				dupVData.push_back(vData.at(v3Ind));
+				iData.push_back(iData.size());
+				dupVData.push_back(vData.at(v4Ind));
+				iData.push_back(iData.size());*/
+				
+				if (!patches)
+				{
+					iData.push_back(v1Ind); iData.push_back(v4Ind); iData.push_back(v3Ind);
+					iData.push_back(v1Ind); iData.push_back(v2Ind); iData.push_back(v4Ind);
+				}
+				else
+				{
+					iData.push_back(v1Ind); iData.push_back(v2Ind);
+					iData.push_back(v3Ind); iData.push_back(v4Ind);
+				}
+
+			}
+		}
+
+		auto rectMesh = std::make_shared<Mesh>(vData, iData);
+		rectMesh->name = "Rect Mesh";
+		return rectMesh;
+	}
+
 	std::shared_ptr<Mesh> getHemiSphere(float xRad, float yRad, int gridX, int gridY)
 	{
 		if (xRad * yRad * gridX * gridY <= 0)
@@ -1533,6 +1629,32 @@ namespace GLUtility
 		vbo = makeVetexBufferObject(vData);
 		ibo = makeIndexBufferObject(iData);
 		vao = makeVertexArrayObject(vbo, ibo);
+		drawCount = (unsigned int)iData.size();
+		tMatrix = glm::mat4(1);
+		trans = glm::mat4(1);
+		rot = glm::mat4(1);
+		scle = glm::mat4(1);
+	}
+
+	Mesh::Mesh(vector<VDPosNormUvTess> vData, vector<unsigned int> iData)
+	{
+		this->vdPosNormUvTess = vData;
+		this->iData = iData;
+		vbo = makeVetexBufferObject(vData);
+		ibo = makeIndexBufferObject(iData);
+		glGenVertexArrays(1, &vao);
+		glBindVertexArray(vao);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo);
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(VDPosNormUvTess), (void*)0);
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(VDPosNormUvTess), (void*)sizeof(glm::vec3));
+		glEnableVertexAttribArray(2);
+		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(VDPosNormUvTess), (void*)(sizeof(glm::vec3) * 2));
+		glEnableVertexAttribArray(3);
+		glVertexAttribPointer(3, 1, GL_INT, GL_FALSE, sizeof(VDPosNormUvTess), (void*)((sizeof(glm::vec3) * 2)+(sizeof(glm::vec2) * 1)));
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindVertexArray(0);
 		drawCount = (unsigned int)iData.size();
 		tMatrix = glm::mat4(1);
 		trans = glm::mat4(1);
