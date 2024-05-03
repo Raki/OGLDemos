@@ -6,7 +6,7 @@ uniform mat4 view;
 uniform mat4 proj;
 
 
-layout (std140,binding = 1) uniform Instances
+layout (std140,binding = 1) buffer Instances
 {
 	vec3 iPositions[];
 };
@@ -21,5 +21,5 @@ void main()
 	vec3 uvw = vec3(xyz);
     vec3 position = uvw * 2.0 - 1.0;
 
-	gl_Position = proj*view*model*vec4(position,1.0);
+	gl_Position = proj*view*model*vec4(position+vec3((float)instance,0,0),1.0);
 }

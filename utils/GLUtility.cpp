@@ -1703,7 +1703,7 @@ namespace GLUtility
 	{
 		glBindVertexArray(vao);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-		glDrawElements(drawCommand, drawCount, GL_UNSIGNED_INT, (void*)0);
+		//glDrawElements(drawCommand, drawCount, GL_UNSIGNED_INT, (void*)0);
 		glDrawElementsInstanced(drawCommand, drawCount, GL_UNSIGNED_INT, (void*)0, iCount);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 		glBindVertexArray(0);

@@ -53,6 +53,20 @@ struct DebugParams
     int tessLevel = 16;
 };
 
+struct GLBuffer
+{
+    GLuint id;
+    GLenum target;
+    ~GLBuffer()
+    {
+        if (id > 0)
+        {
+            std::cout << "Deleting buffer " << target << "\n";
+            glDeleteBuffers(1, &id);
+        }
+    }
+};
+
 GLFWwindow* window;
 auto closeWindow = false;
 auto capturePos = false;
@@ -71,6 +85,7 @@ std::vector<std::shared_ptr<Mesh>> scenObjects,defaultMatObjs;
 std::shared_ptr<Mesh> fsQuad,lBox,pickBox,eCube;
 std::shared_ptr<FrameBuffer> layer1,layer2;
 std::shared_ptr<Texture2D> diffuseTex, specularTex, dispMapTex;
+std::shared_ptr<GLBuffer> uniformBuffer;
 glm::vec3 lightPosition = glm::vec3(5, 6, 0);
 
 struct Framebuffer
@@ -459,7 +474,7 @@ void initImgui()
 
 void setupCamera() {
 
-    auto eye = glm::vec3(0, 0, 4);
+    auto eye = glm::vec3(0, 0, 10);
     auto center = glm::vec3(0, 0, 0);
     auto up = glm::vec3(0, 1, 0);
     camera = std::make_shared<Camera>(eye,center,up);
@@ -505,31 +520,11 @@ void setupScene()
     lBox->tMatrix = glm::translate(glm::mat4(1), light.position);
     lBox->pickColor = glm::vec4(1.0);
 
-    std::vector<unsigned int> iArr = {
-        // Bottom face
-        0, 1, 3,
-        1, 2, 3,
-
-        // Top face
-        4, 5, 7,
-        5, 6, 7,
-
-        // Front face
-        0, 1, 5,
-        0, 4, 5,
-
-        // Back face
-        2, 3, 7,
-        2, 6, 7,
-
-        // Left face
-        0, 2, 6,
-        0, 4, 6,
-
-        // Right face
-        1, 3, 7,
-        1, 5, 7
-    };
+    std::vector<unsigned int> iArr;
+    std::vector<glm::vec3> posArr;
+    posArr.push_back(glm::vec3(2, 1, 0));
+    posArr.push_back(glm::vec3(5, 0, 0));
+    fillEffCubeIbo(iArr, 2);
 
     std::vector<glm::vec3> vArr{};
     eCube = std::make_shared<Mesh>(vArr,iArr);
@@ -537,7 +532,14 @@ void setupScene()
     eCube->drawCommand = GL_TRIANGLES;
     eCube->tMatrix = glm::mat4(1);
    
-
+    GLuint ubo;
+    glGenBuffers(1, &ubo);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER,ubo);
+    glBufferData(GL_SHADER_STORAGE_BUFFER,sizeof(glm::vec3)*posArr.size(),posArr.data(),GL_STATIC_DRAW);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+    uniformBuffer = std::make_shared<GLBuffer>();
+    uniformBuffer->id = ubo;
+    uniformBuffer->target = GL_SHADER_STORAGE_BUFFER;
 
     defaultMatObjs.push_back(lBox);
     
@@ -662,7 +664,9 @@ void renderFrame()
         cubeProgram->setMat4f("model", mv);
         cubeProgram->setVec3f("color", glm::vec3(obj->color));
         cubeProgram->bindAllUniforms();
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, uniformBuffer->id);
         obj->draw();
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
     }
 
     cubeProgram->unbind();
