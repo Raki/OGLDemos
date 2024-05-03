@@ -19,7 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="DisplacementMap.cpp" />
+    <ClCompile Include="EfficientCube.cpp" />
     <ClCompile Include="imgui-1.88\backends\imgui_impl_glfw.cpp" />
     <ClCompile Include="imgui-1.88\backends\imgui_impl_opengl3.cpp" />
     <ClCompile Include="imgui-1.88\imgui.cpp" />
@@ -181,7 +181,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opengl32.lib;glew32.lib;glfw3dll.lib;tinyobjloader.lib;mcut.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;glew32.lib;glfw3dll.lib;tinyobjloader.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>lib/Release</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
