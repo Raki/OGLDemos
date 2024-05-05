@@ -1,6 +1,8 @@
 #pragma once
 #include <glm/glm.hpp>
 #include <ctime>
+#include <random>
+
 namespace Color
 {
 	extern glm::vec3 red;
@@ -26,5 +28,6 @@ namespace Color
 	
 	glm::vec3 getRandomColor();
 	
+	int generateRandomNumber(int min, int max);
 };
 

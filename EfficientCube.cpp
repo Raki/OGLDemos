@@ -49,6 +49,7 @@ struct LightInfo
 struct DebugParams
 {
     bool wireFrameMode = false;
+    bool culling = false;
     float depth = 0.25f;
     int tessLevel = 16;
 };
@@ -67,13 +68,19 @@ struct GLBuffer
     }
 };
 
+struct InstanceData
+{
+    glm::vec4 pos;
+    glm::vec4 colr;
+};
+
 GLFWwindow* window;
 auto closeWindow = false;
 auto capturePos = false;
 
 std::shared_ptr<Camera> camera;
 float fov=45;
-glm::mat4 projectionMat = glm::perspective(fov, (float)WIN_WIDTH / (float)WIN_HEIGHT, 0.1f, 100.0f);
+glm::mat4 projectionMat = glm::perspective(fov, (float)WIN_WIDTH / (float)WIN_HEIGHT, 0.1f, 200.0f);
 
 
 glm::mat4 globalModelMat = glm::mat4(1);
@@ -85,7 +92,7 @@ std::vector<std::shared_ptr<Mesh>> scenObjects,defaultMatObjs;
 std::shared_ptr<Mesh> fsQuad,lBox,pickBox,eCube;
 std::shared_ptr<FrameBuffer> layer1,layer2;
 std::shared_ptr<Texture2D> diffuseTex, specularTex, dispMapTex;
-std::shared_ptr<GLBuffer> uniformBuffer;
+std::shared_ptr<GLBuffer> ssboPos,ssboColr,ssboInstance;
 glm::vec3 lightPosition = glm::vec3(5, 6, 0);
 
 struct Framebuffer
@@ -122,6 +129,7 @@ bool viewBlendFrame = false;
 bool usePbo = true;
 
 float gRotation = 90;
+float cubeRotation = 0;
 
 float bluePos[3] = { 0.2f, 0, -1.0f };
 float orangePos[3] = { 0, 0, 0 };
@@ -422,7 +430,9 @@ void createWindow()
 void initGL()
 {
     glEnable(GL_DEPTH_TEST);
-    
+    //glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CCW);
     
 
     glViewport(0, 0, WIN_WIDTH, WIN_HEIGHT);
@@ -431,7 +441,7 @@ void initGL()
    
     basicProgram = std::make_shared<GlslProgram>(Utility::readFileContents("shaders/vBasic.glsl"), Utility::readFileContents("shaders/fBasic.glsl"));
 
-    cubeProgram = std::make_shared<GlslProgram>(Utility::readFileContents("shaders/vBasicCube.glsl"), Utility::readFileContents("shaders/fBasic.glsl"));
+    cubeProgram = std::make_shared<GlslProgram>(Utility::readFileContents("shaders/vBasicCube.glsl"), Utility::readFileContents("shaders/fBasicCube.glsl"));
     
     setupScene();
     setupCamera();
@@ -482,19 +492,61 @@ void setupCamera() {
     camera->viewMat = glm::lookAt(camera->eye, camera->center, camera->up);
 }
 
+template <typename T>
+std::shared_ptr<GLBuffer> makeShaderStorageBuffer(const std::vector<T> &data)
+{
+    GLuint ssbo;
+    glGenBuffers(1, &ssbo);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(T) * data.size(), (const void*)data.data(), GL_DYNAMIC_COPY);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+    auto buffer = std::make_shared<GLBuffer>();
+    buffer->id = ssbo;
+    buffer->target = GL_SHADER_STORAGE_BUFFER;
+    return buffer;
+}
+
 void fillEffCubeIbo(std::vector<unsigned int> &iArr,const int &numCubes)
 {
-    for (unsigned int c = 1; c <= numCubes; c++)
+    for (unsigned int c = 0; c < numCubes; c++)
     {
         const std::vector<unsigned int> arr = {
-            0*c, 1*c, 3*c, 1*c, 2*c, 3*c,
-            4*c, 5*c, 7*c, 5*c, 6*c, 7*c,
-            0*c, 1*c, 5*c, 0*c, 4*c, 5*c,
-            2*c, 3*c, 7*c, 2*c, 6*c, 7*c,
-            0*c, 2*c, 6*c, 0*c, 4*c, 6*c,
-            1*c, 3*c, 7*c, 1*c, 5*c, 7*c
+            0+(c*8), 1+(c*8), 2+(c*8), 1+(c*8), 3+(c*8), 2+(c*8), // bottom
+            //6+(c*8), 5+(c*8), 4+(c*8), 6+(c*8), 7+(c*8), 5+(c*8), // top
+            //2+(c*8), 3+(c*8), 7+(c*8), 2+(c*8), 7+(c*8), 6+(c*8), // front
+            4+(c*8), 5+(c*8), 0+(c*8), 5+(c*8), 1+(c*8), 0+(c*8), // back
+            0+(c*8), 2+(c*8), 6+(c*8), 0+(c*8), 6+(c*8), 4+(c*8), // left
+            //7+(c*8), 3+(c*8), 1+(c*8), 7+(c*8), 1+(c*8), 5+(c*8)  // right
         };
         iArr.insert(iArr.end(), arr.begin(), arr.end());
+    }
+}
+
+void validateIndexArr(const std::vector<unsigned int>& data)
+{
+    for (unsigned int gl_VertexID=0;gl_VertexID < data.size(); gl_VertexID++)
+    {
+        unsigned int vx = gl_VertexID;
+        unsigned int instance = vx >> 3;
+
+        glm::vec3 instance_pos = glm::vec3(0,0,0);
+        glm::vec3 local_camera_pos = glm::vec3(0,0,10) - instance_pos;// camera->eye;
+
+        glm::uvec3 xyz = glm::uvec3(vx & 0x1, (vx & 0x4) >> 2, (vx & 0x2) >> 1);
+        glm::vec3 cpy = xyz;
+
+        if (local_camera_pos.x > 0) 
+            xyz.x = 1 - xyz.x;
+        if (local_camera_pos.y > 0) 
+            xyz.y = 1 - xyz.y;
+        if (local_camera_pos.z > 0) 
+            xyz.z = 1 - xyz.z;
+
+        glm::vec3 uvw = glm::vec3(xyz);
+        glm::vec3 position = uvw * 2.0f - 1.0f;
+        glm::vec3 temp = cpy * 2.0f - 1.0f;
+        fmt::print("xyz: {},{},{} vs mod:{},{},{}\n", position.x, position.y, position.z,temp.x,temp.y,temp.z);
+        //gl_Position = proj * view * model * vec4(position + instance_pos, 1.0);
     }
 }
 
@@ -520,26 +572,33 @@ void setupScene()
     lBox->tMatrix = glm::translate(glm::mat4(1), light.position);
     lBox->pickColor = glm::vec4(1.0);
 
-    std::vector<unsigned int> iArr;
-    std::vector<glm::vec3> posArr;
-    posArr.push_back(glm::vec3(2, 1, 0));
-    posArr.push_back(glm::vec3(5, 0, 0));
-    fillEffCubeIbo(iArr, 2);
+    std::vector<unsigned int> iArr, tstArr{0,1,2,3,4,5,6,7};
+    std::vector<InstanceData> instanceArr;
+
+    const int numCubes = 1;
+
+    fillEffCubeIbo(iArr, numCubes);
+    validateIndexArr(tstArr);
+
+    glm::vec2 origin = glm::vec2(0,0);
+    for (auto i = 0; i < numCubes; i++)
+    {
+        float x= ((i%50)*2) + origin.x;
+        float y = ((i / 50) * 2) + origin.y;
+
+        auto clr = Color::getRandomColor();
+        instanceArr.push_back({ glm::vec4(x, y, 0,0),glm::vec4(clr,0) });
+    }
+
+    
 
     std::vector<glm::vec3> vArr{};
     eCube = std::make_shared<Mesh>(vArr,iArr);
     eCube->color = glm::vec4(0.9,0.5,0.5,1.0f);
     eCube->drawCommand = GL_TRIANGLES;
-    eCube->tMatrix = glm::mat4(1);
+    //eCube->tMatrix = glm::rotate(glm::mat4(1),glm::radians(45.0f),glm::vec3(1,0,0));
    
-    GLuint ubo;
-    glGenBuffers(1, &ubo);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER,ubo);
-    glBufferData(GL_SHADER_STORAGE_BUFFER,sizeof(glm::vec3)*posArr.size(),posArr.data(),GL_STATIC_DRAW);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-    uniformBuffer = std::make_shared<GLBuffer>();
-    uniformBuffer->id = ubo;
-    uniformBuffer->target = GL_SHADER_STORAGE_BUFFER;
+    ssboInstance = makeShaderStorageBuffer<InstanceData>(instanceArr);
 
     defaultMatObjs.push_back(lBox);
     
@@ -615,8 +674,10 @@ void updateFrame()
     //scenObjects.at(2)->tMatrix = glm::translate(glm::mat4(1), glm::vec3(bluePos[0], bluePos[1], bluePos[2]));
     //scenObjects.at(1)->tMatrix = glm::translate(glm::mat4(1), glm::vec3(orangePos[0], orangePos[1], orangePos[2]));
     light.position.x = sin(glm::radians((float)t))*2;
-    camera->orbitY(glm::radians(gRotation));
+    //camera->orbitX(glm::radians(gRotation));
+    camera->orbitXY(glm::radians(gRotation),glm::radians(cubeRotation));
     lBox->tMatrix = glm::translate(glm::mat4(1), light.position);
+    eCube->tMatrix = glm::rotate(glm::mat4(1),glm::radians(cubeRotation),glm::vec3(1,0,0));
 
 
 }
@@ -654,7 +715,7 @@ void renderFrame()
 
     cubeProgram->setMat4f("view", camera->viewMat);
     cubeProgram->setMat4f("proj", projectionMat);
-    cubeProgram->setVec3f("color", Color::red);
+    cubeProgram->setVec3f("camera_pos", camera->eye);
     
     {
         glm::mat4 mv;
@@ -664,7 +725,7 @@ void renderFrame()
         cubeProgram->setMat4f("model", mv);
         cubeProgram->setVec3f("color", glm::vec3(obj->color));
         cubeProgram->bindAllUniforms();
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, uniformBuffer->id);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ssboInstance->id);
         obj->draw();
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
     }
@@ -703,6 +764,7 @@ void renderImgui()
 
         ImGui::Text("Use UP & DOWN arrows for zoom-In&Out");
         ImGui::SliderFloat("Rotation", &gRotation, 0, 360);
+        ImGui::SliderFloat("Cube Y Rotation", &cubeRotation, 0, 360);
         ImGui::Text("Use Lef mouse click to pick triangle");
 
         ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
@@ -726,7 +788,20 @@ void renderImgui()
     {
         ImGui::Begin("Debug params");
         
+        auto prev = dParams.wireFrameMode;
         ImGui::Checkbox("WireFrameMode", &dParams.wireFrameMode);
+        if (prev != dParams.wireFrameMode)
+        {
+            if (dParams.wireFrameMode) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            else glPolygonMode(GL_FRONT, GL_FILL);
+        }
+        auto prevCMode = dParams.culling;
+        ImGui::Checkbox("BackFace Culling", &dParams.culling);
+        if (prevCMode != dParams.culling)
+        {
+            if (dParams.culling) glEnable(GL_CULL_FACE);
+            else glDisable(GL_CULL_FACE);
+        }
         ImGui::SliderFloat("Depth", &dParams.depth, 0, 1);
         ImGui::SliderInt("Tess level", &dParams.tessLevel, 1, 100);
 

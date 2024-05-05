@@ -30,9 +30,16 @@ namespace Color
 
 	glm::vec3 getRandomColor()
 	{
-		srand(time(NULL));
-		int i = rand() % totalColors;
+		int i = generateRandomNumber(0,totalColors);
 
 		return colrArr[i];
+	}
+	int generateRandomNumber(int min, int max)
+	{
+		std::random_device rd;  // Obtain a random seed from the OS entropy device
+		std::mt19937 eng(rd()); // Standard mersenne_twister_engine seeded with rd()
+		std::uniform_int_distribution<> distribution(min, max); // Define the range
+
+		return distribution(eng); // Generate a random number within the defined range
 	}
 };
